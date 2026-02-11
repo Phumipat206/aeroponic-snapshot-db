@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_styles %}
+/* ===== Dashboard-Specific Styles ===== */
+.dash-hero{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.dash-hero-icon{width:64px;height:64px;background:var(--hero-icon-bg);border-radius:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;backdrop-filter:blur(10px)}
+.dash-hero-icon img{width:48px;height:48px;object-fit:contain}
+.dash-hero-text{flex:1;min-width:200px}
+.dash-hero-text h1{font-size:24px;font-weight:800;color:var(--hero-text);margin-bottom:4px;letter-spacing:-0.3px}
+.dash-hero-text p{color:var(--hero-sub);font-size:14px;opacity:0.85}
+.dash-hero-actions{display:flex;gap:8px;flex-wrap:wrap}
+.dash-hero-actions .btn{background:var(--hero-btn-bg);border:1px solid var(--hero-btn-border);backdrop-filter:blur(10px);font-size:13px;padding:10px 20px;color:var(--hero-text);font-weight:500}
+.dash-hero-actions .btn:hover{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:0 4px 15px var(--primary-glow)}
+
+/* ===== Big Stat Cards ===== */
+.dash-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.dash-stat{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-xl);padding:28px 24px;position:relative;overflow:hidden;transition:all .3s}
+.dash-stat:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);border-color:var(--gray-300)}
+.dash-stat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.dash-stat-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.dash-stat-icon.purple{background:var(--primary-light);color:var(--primary)}
+.dash-stat-icon.green{background:var(--success-light);color:var(--success)}
+.dash-stat-icon.cyan{background:var(--accent-light);color:var(--accent)}
+.dash-stat-icon.amber{background:var(--warning-light);color:var(--warning)}
+.dash-stat-badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:4px}
+.dash-stat-badge.live{background:var(--success-light);color:var(--success)}
+.dash-stat-number{font-size:36px;font-weight:800;color:var(--text-heading);line-height:1.1;margin-bottom:4px;letter-spacing:-1px}
+.dash-stat-label{font-size:13px;color:var(--text-muted);font-weight:500}
+.dash-stat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px}
+.dash-stat:nth-child(1)::after{background:var(--gradient-primary)}
+.dash-stat:nth-child(2)::after{background:var(--gradient-success)}
+.dash-stat:nth-child(3)::after{background:var(--gradient-accent)}
+.dash-stat:nth-child(4)::after{background:linear-gradient(135deg, #d97706, #f59e0b)}
+
+/* ===== Quick Actions Row ===== */
+.dash-actions{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+.dash-action{display:flex;flex-direction:column;align-items:center;gap:12px;padding:28px 16px;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-xl);text-decoration:none;color:var(--text-secondary);font-weight:500;font-size:13px;transition:all .3s;position:relative;overflow:hidden}
+.dash-action::before{content:'';position:absolute;inset:0;background:var(--gradient-primary);opacity:0;transition:opacity .3s}
+.dash-action:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(99,102,241,0.2);border-color:var(--primary)}
+.dash-action:hover::before{opacity:0.06}
+.dash-action i{font-size:28px;color:var(--primary);position:relative;z-index:1}
+.dash-action span{position:relative;z-index:1}
+.dash-action:hover i,.dash-action:hover span{color:var(--primary)}
+
+/* ===== Two Column Grid ===== */
+.dash-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+
+/* ===== Timeline Cards ===== */
+.timeline-block{padding:20px;background:var(--primary-light);border-radius:var(--radius-lg);border:1px solid rgba(99,102,241,0.1);position:relative;overflow:hidden}
+.timeline-block.success{background:var(--success-light);border-color:rgba(34,197,94,0.1)}
+.timeline-block .tl-label{color:var(--text-muted);font-size:12px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.timeline-block .tl-value{font-weight:700;color:var(--text-heading);font-size:15px}
+
+/* ===== Recent Activity ===== */
+.activity-item{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border)}
+.activity-item:last-child{border-bottom:none}
+.activity-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.activity-dot.purple{background:var(--primary)}
+.activity-dot.green{background:var(--success)}
+.activity-dot.cyan{background:var(--accent)}
+.activity-text{flex:1;font-size:13.5px;color:var(--text-secondary)}
+.activity-text strong{color:var(--text);font-weight:600}
+
+/* ===== System Status ===== */
+.sys-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13.5px}
+.sys-row:last-child{border-bottom:none}
+.sys-label{color:var(--text-secondary);display:flex;align-items:center;gap:8px}
+.sys-label i{width:16px;color:var(--text-muted);font-size:14px}
+.sys-value{font-weight:600;color:var(--text-heading)}
+.sys-status{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--success-light);color:var(--success)}
+
+/* ===== Responsive ===== */
+@media(max-width:1024px){
+    .dash-stats{grid-template-columns:repeat(2,1fr)}
+    .dash-actions{grid-template-columns:repeat(3,1fr)}
+    .dash-two-col{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+    .dash-stats{grid-template-columns:1fr 1fr}
+    .dash-actions{grid-template-columns:repeat(2,1fr)}
+    .dash-stat-number{font-size:28px}
+    .dash-hero-text h1{font-size:20px}
+    .dash-hero{gap:16px}
+    .dash-action{padding:20px 12px}
+    .dash-action i{font-size:24px}
+    .dash-action span{font-size:12px}
+}
+@media(max-width:480px){
+    .dash-stats{grid-template-columns:1fr 1fr}
+    .dash-actions{grid-template-columns:1fr 1fr}
+    .dash-stat{padding:18px 14px}
+    .dash-hero-actions{width:100%}
+    .dash-hero-actions .btn{flex:1;justify-content:center;padding:10px 12px;font-size:12px}
+    .dash-stat-number{font-size:22px}
+    .dash-stat-label{font-size:11px}
+    .dash-stat-icon{width:40px;height:40px;font-size:18px}
+    .dash-hero-icon{width:48px;height:48px}
+    .dash-hero-icon img{width:36px;height:36px}
+    .dash-hero-text h1{font-size:18px}
+    .dash-hero-text p{font-size:12px}
+    .timeline-block .tl-value{font-size:13px}
+    .activity-text{font-size:12px}
+    .sys-row{font-size:12px}
+}
+@media(max-width:360px){
+    .dash-stats{grid-template-columns:1fr}
+    .dash-actions{grid-template-columns:1fr}
+    .dash-stat{padding:16px 12px}
+    .dash-stat-number{font-size:20px}
+    .dash-stat-top{margin-bottom:10px}
+    .dash-action{padding:16px 10px}
+    .dash-hero{flex-direction:column;align-items:flex-start}
+    .dash-hero-actions{flex-direction:column}
+    .dash-hero-actions .btn{width:100%}
+}
+{% endblock %}
+
+{% block content %}
+<!-- ===== Welcome Hero ===== -->
+<div class="hero-banner" style="margin-bottom:24px">
+    <div class="dash-hero">
+        <div class="dash-hero-icon">
+            <img src="/static/images/logo.png" alt="Logo">
+        </div>
+        <div class="dash-hero-text">
+            <h1>Aeroponic Snapshot Database</h1>
+            <p>Manage plant snapshots, create time-lapse videos, and track growth over time</p>
+        </div>
+        <div class="dash-hero-actions">
+            <a href="/upload" class="btn"><i class="fas fa-cloud-upload-alt"></i> Upload</a>
+            <a href="/query" class="btn"><i class="fas fa-search"></i> Search</a>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Big Stats ===== -->
+<div class="dash-stats">
+    <div class="dash-stat">
+        <div class="dash-stat-top">
+            <div class="dash-stat-icon purple"><i class="fas fa-image"></i></div>
+            <span class="dash-stat-badge live"><i class="fas fa-circle" style="font-size:6px"></i> Active</span>
+        </div>
+        <div class="dash-stat-number">{{ stats.total_snapshots }}</div>
+        <div class="dash-stat-label"><i class="fas fa-camera" style="margin-right:4px"></i> Total Snapshots</div>
+    </div>
+    <div class="dash-stat">
+        <div class="dash-stat-top">
+            <div class="dash-stat-icon green"><i class="fas fa-folder-open"></i></div>
+        </div>
+        <div class="dash-stat-number">{{ stats.total_categories }}</div>
+        <div class="dash-stat-label"><i class="fas fa-layer-group" style="margin-right:4px"></i> Categories</div>
+    </div>
+    <div class="dash-stat">
+        <div class="dash-stat-top">
+            <div class="dash-stat-icon cyan"><i class="fas fa-video"></i></div>
+        </div>
+        <div class="dash-stat-number">{{ stats.total_videos }}</div>
+        <div class="dash-stat-label"><i class="fas fa-film" style="margin-right:4px"></i> Videos Created</div>
+    </div>
+    <div class="dash-stat">
+        <div class="dash-stat-top">
+            <div class="dash-stat-icon amber"><i class="fas fa-database"></i></div>
+        </div>
+        <div class="dash-stat-number">{{ "%.2f"|format(stats.total_size_bytes / (1024*1024*1024)) }}<small style="font-size:16px;font-weight:500;color:var(--text-muted)"> GB</small></div>
+        <div class="dash-stat-label"><i class="fas fa-hdd" style="margin-right:4px"></i> Storage Used</div>
+    </div>
+</div>
+
+<!-- ===== Quick Actions ===== -->
+<div class="dash-actions">
+    <a href="/upload" class="dash-action">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <span>Upload</span>
+    </a>
+    <a href="/query" class="dash-action">
+        <i class="fas fa-search"></i>
+        <span>Search</span>
+    </a>
+    <a href="/generate-video" class="dash-action">
+        <i class="fas fa-film"></i>
+        <span>Create Video</span>
+    </a>
+    <a href="/categories" class="dash-action">
+        <i class="fas fa-folder-plus"></i>
+        <span>Categories</span>
+    </a>
+    <a href="/import-drive" class="dash-action">
+        <i class="fas fa-file-import"></i>
+        <span>Import</span>
+    </a>
+</div>
+
+<!-- ===== Two Column: Timeline + System Status ===== -->
+<div class="dash-two-col">
+    <!-- Data Timeline -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-clock"></i>
+            <h2>Data Timeline</h2>
+        </div>
+        {% if stats.earliest_snapshot and stats.latest_snapshot %}
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:12px">
+            <div class="timeline-block">
+                <div class="tl-label"><i class="fas fa-play-circle"></i> First Snapshot</div>
+                <div class="tl-value">{{ stats.earliest_snapshot }}</div>
+            </div>
+            <div class="timeline-block success">
+                <div class="tl-label"><i class="fas fa-flag-checkered"></i> Latest Snapshot</div>
+                <div class="tl-value">{{ stats.latest_snapshot }}</div>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state" style="padding:24px">
+            <i class="fas fa-inbox"></i>
+            <h3>No Data Yet</h3>
+            <p>Upload your first snapshot to start tracking</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- System Status -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-server"></i>
+            <h2>System Status</h2>
+        </div>
+        <div>
+            <div class="sys-row">
+                <span class="sys-label"><i class="fas fa-circle-check"></i> Database</span>
+                <span class="sys-status"><i class="fas fa-circle" style="font-size:6px"></i> Online</span>
+            </div>
+            <div class="sys-row">
+                <span class="sys-label"><i class="fas fa-images"></i> Snapshots</span>
+                <span class="sys-value">{{ stats.total_snapshots }}</span>
+            </div>
+            <div class="sys-row">
+                <span class="sys-label"><i class="fas fa-hdd"></i> Storage</span>
+                <span class="sys-value">{{ "%.2f"|format(stats.total_size_bytes / (1024*1024*1024)) }} GB</span>
+            </div>
+            <div class="sys-row">
+                <span class="sys-label"><i class="fas fa-folder"></i> Categories</span>
+                <span class="sys-value">{{ stats.total_categories }}</span>
+            </div>
+            <div class="sys-row">
+                <span class="sys-label"><i class="fas fa-video"></i> Videos</span>
+                <span class="sys-value">{{ stats.total_videos }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Two Column: Getting Started + Features ===== -->
+<div class="dash-two-col">
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-rocket"></i>
+            <h2>Getting Started</h2>
+        </div>
+        <ul class="feature-list">
+            <li>
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <strong>Upload</strong>
+                    <p class="helper-text">Snapshots manually or bulk import</p>
+                </div>
+            </li>
+            <li>
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <strong>Organize</strong>
+                    <p class="helper-text">With categories, projects & cameras</p>
+                </div>
+            </li>
+            <li>
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <strong>Search & Filter</strong>
+                    <p class="helper-text">By date, project, camera, or tags</p>
+                </div>
+            </li>
+            <li>
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <strong>Create Videos</strong>
+                    <p class="helper-text">Time-lapse growth visualization</p>
+                </div>
+            </li>
+            <li>
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <strong>Automate</strong>
+                    <p class="helper-text">Raspberry Pi auto-upload integration</p>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-star"></i>
+            <h2>Key Features</h2>
+        </div>
+        <ul class="feature-list">
+            <li>
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <strong>Unlimited Storage</strong>
+                    <p class="helper-text">Store as many snapshots as you need</p>
+                </div>
+            </li>
+            <li>
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <strong>Hierarchical Categories</strong>
+                    <p class="helper-text">Multi-level organization system</p>
+                </div>
+            </li>
+            <li>
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <strong>REST API</strong>
+                    <p class="helper-text">Automate uploads from any device</p>
+                </div>
+            </li>
+            <li>
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <strong>Smart Folder Parsing</strong>
+                    <p class="helper-text">cam[n]/date folder structure support</p>
+                </div>
+            </li>
+            <li>
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <strong>Date & Time Search</strong>
+                    <p class="helper-text">Filter snapshots by time range</p>
+                </div>
+            </li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

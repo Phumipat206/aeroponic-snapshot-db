@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+
+{% block title %}Auto-Sync - Folder Watcher{% endblock %}
+{% block page_title %}Auto-Sync{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-sync-alt"></i> Auto-Sync (Folder Watcher)</h1>
+    <p class="subtitle">Automatic folder monitoring system - Import images without pressing buttons</p>
+</div>
+
+<div class="info-cards">
+    <div class="info-card">
+        <div class="info-icon">
+            <i class="fas fa-folder-open"></i>
+        </div>
+        <div class="info-content">
+            <h3>How It Works</h3>
+            <p>The system monitors your designated folder. When new images appear, they are automatically imported.</p>
+        </div>
+    </div>
+    
+    <div class="info-card">
+        <div class="info-icon">
+            <i class="fas fa-camera"></i>
+        </div>
+        <div class="info-content">
+            <h3>Ideal For</h3>
+            <p>Cameras that save images directly to folders, or systems requiring automation.</p>
+        </div>
+    </div>
+</div>
+
+<div class="setup-section">
+    <h2><i class="fas fa-terminal"></i> How to Use Folder Watcher</h2>
+    
+    <div class="method-box">
+        <h3>Command Line</h3>
+        <div class="code-block">
+            <code>python folder_watcher.py --watch "D:\CameraOutput" --category "Aeroponic System 1"</code>
+        </div>
+        
+        <h4>Options:</h4>
+        <div style="overflow-x:auto">
+        <table class="options-table">
+            <tr>
+                <td><code>--watch, -w</code></td>
+                <td>Folder to monitor</td>
+            </tr>
+            <tr>
+                <td><code>--category, -c</code></td>
+                <td>Category name for imported images</td>
+            </tr>
+            <tr>
+                <td><code>--scan, -s</code></td>
+                <td>Scan existing files before monitoring</td>
+            </tr>
+            <tr>
+                <td><code>--quiet, -q</code></td>
+                <td>Quiet mode (show errors only)</td>
+            </tr>
+        </table>
+        </div>
+    </div>
+    
+    <div class="method-box">
+        <h3>Examples</h3>
+        <div class="code-block">
+            <code># Monitor camera folder with existing file scan</code><br>
+            <code>python folder_watcher.py -w "E:\Photos" -c "Tray A" -s</code>
+        </div>
+        <div class="code-block">
+            <code># Monitor local folder</code><br>
+            <code>python folder_watcher.py -w "./input" -c "Test Category"</code>
+        </div>
+    </div>
+</div>
+
+<div class="setup-section">
+    <h2><i class="fas fa-image"></i> Supported File Formats</h2>
+    <div class="supported-formats">
+        <span class="format-badge">.jpg</span>
+        <span class="format-badge">.jpeg</span>
+        <span class="format-badge">.png</span>
+        <span class="format-badge">.gif</span>
+        <span class="format-badge">.bmp</span>
+    </div>
+</div>
+
+<div class="setup-section">
+    <h2><i class="fas fa-cogs"></i> Camera Setup</h2>
+    <div class="camera-setup">
+        <ol>
+            <li>Configure your camera to save images to a designated folder (e.g., <code>D:\CameraOutput</code>)</li>
+            <li>Set up automatic capture intervals (e.g., every hour or daily at 9:00 AM)</li>
+            <li>Run Folder Watcher to monitor that folder</li>
+            <li>Images will be automatically imported whenever new ones appear</li>
+        </ol>
+    </div>
+</div>
+
+<div class="tip-box">
+    <h3><i class="fas fa-lightbulb"></i> Tips</h3>
+    <ul>
+        <li>You can run multiple Folder Watchers simultaneously to monitor different folders</li>
+        <li>Use <code>--scan</code> to import existing files first</li>
+        <li>Categories are created automatically if they don't exist</li>
+        <li>Subfolder monitoring is supported (Recursive)</li>
+    </ul>
+</div>
+
+<style>
+.info-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.info-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px var(--shadow-xs);
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.info-icon {
+    width: 50px;
+    height: 50px;
+    background: var(--primary);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.info-icon i {
+    font-size: 1.5rem;
+    color: white;
+}
+
+.info-content h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--dark);
+}
+
+.info-content p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.setup-section {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 10px var(--shadow-xs);
+}
+
+.setup-section h2 {
+    margin-top: 0;
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary-light);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.method-box {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid var(--primary);
+}
+
+.method-box h3 {
+    margin-top: 0;
+    color: var(--dark);
+}
+
+.method-box h4 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.code-block {
+    background: var(--gray-50);
+    color: var(--gray-700);
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-family: 'Consolas', monospace;
+    margin: 0.5rem 0;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    line-height: 1.7;
+    word-break: break-all;
+    white-space: pre-wrap;
+    max-width: 100%;
+}
+
+.code-block code {
+    color: var(--gray-700);
+}
+
+.options-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+}
+
+.options-table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.options-table td:first-child {
+    width: 150px;
+    font-family: 'Consolas', monospace;
+    color: var(--primary);
+    background: var(--primary-light);
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.supported-formats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.format-badge {
+    background: var(--primary);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.camera-setup {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.camera-setup ol {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.camera-setup li {
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+}
+
+.camera-setup code {
+    background: var(--primary-light);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    color: var(--primary);
+    font-size: 13px;
+}
+
+.tip-box {
+    background: linear-gradient(135deg, var(--warning-light) 0%, rgba(245,158,11,0.2) 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border-left: 4px solid var(--warning);
+}
+
+.tip-box h3 {
+    margin-top: 0;
+    color: var(--warning);
+}
+
+.tip-box ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.tip-box li {
+    margin-bottom: 0.5rem;
+    color: var(--warning);
+}
+
+/* Mobile Responsive for Auto-Sync */
+@media (max-width: 768px) {
+    .page-header h1 {
+        font-size: clamp(1.1rem, 4vw, 1.6rem);
+        word-break: break-word;
+    }
+    .page-header .subtitle {
+        font-size: 0.85rem;
+    }
+    .setup-section h2 {
+        font-size: 1.1rem;
+    }
+}
+@media (max-width: 640px) {
+    .info-cards {
+        grid-template-columns: 1fr;
+    }
+    .info-card {
+        padding: 1rem;
+    }
+    .setup-section {
+        padding: 1rem;
+    }
+    .method-box {
+        padding: 1rem;
+    }
+    .code-block {
+        font-size: 11px;
+        padding: 10px 12px;
+    }
+    .options-table td:first-child {
+        width: auto;
+        font-size: 12px;
+    }
+    .camera-setup {
+        padding: 1rem;
+    }
+    .tip-box {
+        padding: 1rem;
+    }
+}
+</style>
+{% endblock %}

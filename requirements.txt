@@ -1,0 +1,19 @@
+# Core Dependencies
+Flask==3.1.2              # Web framework
+Werkzeug==3.1.5           # WSGI toolkit
+python-dotenv==1.2.1      # Load environment variables
+
+# Image Processing
+Pillow==12.1.0            # Image manipulation
+opencv-python==4.13.0.92  # Video generation & image processing
+numpy==2.4.2              # Numerical operations
+
+# File Monitoring
+watchdog==6.0.0           # File system monitoring
+python-dateutil==2.9.0.post0  # Date/time parsing
+
+# HTTP
+requests==2.32.5          # HTTP requests (tunnel health check)
+
+# Database
+# SQLite is included with Python, no separate installation needed

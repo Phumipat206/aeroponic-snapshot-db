@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block page_title %}Categories{% endblock %}
+
+{% block extra_styles %}
+/* Mobile card layout for categories table */
+@media (max-width: 640px) {
+    .cat-table thead { display: none; }
+    .cat-table, .cat-table tbody, .cat-table tr, .cat-table td { display: block; width: 100%; }
+    .cat-table tr {
+        margin-bottom: 12px;
+        background: var(--surface);
+        border-radius: 10px;
+        padding: 12px;
+        border: 1px solid var(--border);
+    }
+    .cat-table td {
+        padding: 4px 0;
+        text-align: left;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+        border: none;
+    }
+    .cat-table td::before {
+        font-weight: 600;
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-right: 8px;
+        flex-shrink: 0;
+    }
+    .cat-table td:nth-child(1)::before { content: "ID"; }
+    .cat-table td:nth-child(2)::before { content: "Name"; }
+    .cat-table td:nth-child(3)::before { content: "Parent"; }
+    .cat-table td:nth-child(4)::before { content: "Description"; }
+    .cat-table td:nth-child(5)::before { content: "Created"; }
+    .cat-table td:nth-child(6)::before { content: "Delete"; }
+    .cat-table td:nth-child(6) { justify-content: flex-end; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-folder-tree"></i>
+        <h2>Manage Categories</h2>
+    </div>
+    <p style="color: var(--gray);">Organize your snapshots into categories for better searching and organization</p>
+</div>
+
+<!-- Current Categories -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-list"></i>
+        <h2>Current Categories</h2>
+    </div>
+    
+    {% if categories %}
+    <div class="table-container">
+        <table class="cat-table">
+            <thead>
+                <tr>
+                    <th style="width: 60px;">ID</th>
+                    <th>Category Name</th>
+                    <th>Parent</th>
+                    <th>Description</th>
+                    <th>Created</th>
+                    <th style="width: 80px;">Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in categories %}
+                <tr>
+                    <td><span class="badge badge-secondary">{{ category.id }}</span></td>
+                    <td style="font-weight: 500;">
+                        {% if category.parent_id %}<i class="fas fa-level-up-alt fa-rotate-90" style="color: var(--gray); margin-right: 8px;"></i>{% endif %}
+                        {{ category.name }}
+                    </td>
+                    <td>{{ category.parent_id if category.parent_id else '-' }}</td>
+                    <td>{{ category.description or '-' }}</td>
+                    <td>{{ category.created_at[:10] }}</td>
+                    <td>
+                        <form action="/category/{{ category.id }}/delete" method="POST" style="display: inline;"
+                              onsubmit="return confirm('Are you sure you want to delete this category?');">
+                            <button type="submit" style="padding: 6px 12px; font-size: 0.8rem; background: var(--danger);">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-folder-open"></i>
+        <h3>No Categories Yet</h3>
+        <p>Add your first category below</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add New Category -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-folder-plus"></i>
+        <h2>Add New Category</h2>
+    </div>
+    
+    <form id="addCategoryForm">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="name"><i class="fas fa-tag"></i> Category Name</label>
+                <input type="text" id="name" name="name" placeholder="e.g., Root System, Leaves, Stem" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="parent_id"><i class="fas fa-sitemap"></i> Parent Category (Optional)</label>
+                <select id="parent_id" name="parent_id">
+                    <option value="">-- None (Main Category) --</option>
+                    {% for category in categories %}
+                        {% if not category.parent_id %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="description"><i class="fas fa-align-left"></i> Description</label>
+            <textarea id="description" name="description" rows="3" placeholder="Describe this category..."></textarea>
+        </div>
+        
+        <button type="submit">
+            <i class="fas fa-plus"></i> Add Category
+        </button>
+    </form>
+</div>
+
+<!-- Suggestions -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-lightbulb"></i>
+        <h2>Suggested Categories</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:1rem">
+        <div style="padding: 1rem; background: var(--primary-light); border-radius: 8px;">
+            <strong style="color:var(--text)"><i class="fas fa-seedling"></i> Root System</strong>
+            <p class="helper-text">Track plant root development</p>
+        </div>
+        <div style="padding: 1rem; background: var(--primary-light); border-radius: 8px;">
+            <strong style="color:var(--text)"><i class="fas fa-leaf"></i> Leaves & Stem</strong>
+            <p class="helper-text">Observe leaf growth</p>
+        </div>
+        <div style="padding: 1rem; background: var(--warning-light); border-radius: 8px;">
+            <strong style="color:var(--text)"><i class="fas fa-sun"></i> Environment</strong>
+            <p class="helper-text">Record system conditions and equipment</p>
+        </div>
+        <div style="padding: 1rem; background: var(--danger-light); border-radius: 8px;">
+            <strong style="color:var(--text)"><i class="fas fa-bug"></i> Problems & Diseases</strong>
+            <p class="helper-text">Document issues encountered</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('addCategoryForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        name: document.getElementById('name').value,
+        parent_id: document.getElementById('parent_id').value || null,
+        description: document.getElementById('description').value
+    };
+    
+    const button = this.querySelector('button[type="submit"]');
+    const originalText = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner"></span> Adding...';
+    
+    try {
+        const response = await fetch('/api/categories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    } finally {
+        button.disabled = false;
+        button.innerHTML = originalText;
+    }
+});
+</script>
+{% endblock %}

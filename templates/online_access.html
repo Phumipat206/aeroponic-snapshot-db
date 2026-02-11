@@ -1,0 +1,1970 @@
+{% extends "base.html" %}
+
+{% block title %}Online Access{% endblock %}
+{% block page_title %}Online Access{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-globe"></i> Online Access</h1>
+    <p class="subtitle">Make your system accessible online from anywhere in the world</p>
+</div>
+
+<!-- Current Tunnel URL Section -->
+<div class="current-url-section">
+    <div class="url-header">
+        <h2><i class="fas fa-link"></i> Current Share Link</h2>
+        <span class="status-badge {% if tunnel_url %}active{% else %}inactive{% endif %}" id="tunnelStatus">
+            {% if tunnel_url %}
+                <i class="fas fa-circle"></i> Active
+            {% else %}
+                <i class="fas fa-circle"></i> Not Set
+            {% endif %}
+        </span>
+    </div>
+    
+    <!-- Always Show Local URLs -->
+    <div class="local-urls" id="urlsContainer">
+        <div class="url-row">
+            <span class="url-label"><i class="fas fa-home"></i> Local:</span>
+            <a href="{{ local_url }}" target="_blank" class="url-link">{{ local_url }}</a>
+            <button onclick="copyToClipboard('{{ local_url }}')" class="copy-btn-small" title="Copy">
+                <i class="fas fa-copy"></i>
+            </button>
+        </div>
+        <div class="url-row">
+            <span class="url-label"><i class="fas fa-network-wired"></i> Network:</span>
+            <a href="{{ network_url }}" target="_blank" class="url-link">{{ network_url }}</a>
+            <button onclick="copyToClipboard('{{ network_url }}')" class="copy-btn-small" title="Copy">
+                <i class="fas fa-copy"></i>
+            </button>
+            <span class="url-note">(same WiFi/LAN)</span>
+        </div>
+        <div class="url-row tunnel-row{% if not tunnel_url %} hidden{% endif %}" id="tunnelRow">
+            <span class="url-label"><i class="fas fa-globe"></i> Tunnel:</span>
+            <a href="{{ tunnel_url or '#' }}" target="_blank" rel="noopener noreferrer" class="url-link tunnel{% if not tunnel_url %} disabled{% endif %}" id="tunnelUrlLink">{{ tunnel_url or 'Not set' }}</a>
+            <button onclick="copyUrl()" class="copy-btn-small" title="Copy URL">
+                <i class="fas fa-copy"></i>
+            </button>
+            <button onclick="shareLink()" class="copy-btn-small" title="Share" style="background: #25D366;">
+                <i class="fas fa-share-alt"></i>
+            </button>
+            <button onclick="openTunnelLink()" class="copy-btn-small" title="Open in new tab" style="background: var(--primary);">
+                <i class="fas fa-external-link-alt"></i>
+            </button>
+            <span class="url-note tunnel-note">(public access)</span>
+        </div>
+        <p class="url-info{% if not tunnel_url %} hidden{% endif %}" id="tunnelSetAt">
+            <i class="fas fa-clock"></i> Set at: <span id="setAtTime">{{ tunnel_set_at.replace('T', ', ') if tunnel_set_at else 'N/A' }}</span>
+        </p>
+    </div>
+    
+    <!-- Auto Start Tunnel Section -->
+    <div class="tunnel-actions">
+        <button onclick="startTunnel()" id="startTunnelBtn" class="btn-tunnel-start{% if tunnel_url %} hidden{% endif %}">
+            <i class="fas fa-rocket"></i> Start Online Access
+        </button>
+        <button onclick="stopTunnel()" id="stopTunnelBtn" class="btn-tunnel-stop{% if not tunnel_url %} hidden{% endif %}">
+            <i class="fas fa-stop"></i> Stop Tunnel
+        </button>
+        <div class="tunnel-loading" id="tunnelLoading" style="display:none">
+            <div class="spinner"></div>
+            <span>Starting tunnel, please wait (10-20 seconds)...</span>
+        </div>
+    </div>
+</div>
+
+<!-- Visitor Statistics -->
+<div class="visitors-section">
+    <div class="visitors-header">
+        <h2><i class="fas fa-users"></i> Visitor Tracking</h2>
+        <div class="visitors-stats">
+            <div class="stat-item">
+                <i class="fas fa-eye"></i>
+                <span class="stat-value">{{ total_visits }}</span>
+                <span class="stat-label">Total Visits</span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-user"></i>
+                <span class="stat-value">{{ unique_visitors }}</span>
+                <span class="stat-label">Unique Visitors</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Unique Visitors Summary -->
+    {% if visitors_summary %}
+    <div class="visitors-table-container">
+        <h3><i class="fas fa-user-friends"></i> Unique Visitors (by IP)</h3>
+        <table class="visitors-table">
+            <thead>
+                <tr>
+                    <th>IP Address</th>
+                    <th>First Visit</th>
+                    <th>Last Visit</th>
+                    <th>Visits</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in visitors_summary %}
+                <tr>
+                    <td>
+                        <span class="ip-badge">
+                            <i class="fas fa-desktop"></i> {{ v.ip }}
+                        </span>
+                    </td>
+                    <td>{{ v.first_visit[:16].replace('T', ' ') if v.first_visit else 'N/A' }}</td>
+                    <td>{{ v.last_visit[:16].replace('T', ' ') if v.last_visit else 'N/A' }}</td>
+                    <td><span class="visit-count">{{ v.visit_count }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    <!-- Recent Visitors (IPs only) -->
+    {% if visitors %}
+    <div class="activity-log">
+        <h3><i class="fas fa-history"></i> Recent Visitors</h3>
+        <div style="margin-bottom:12px">
+            <input type="text" id="visitorSearch" placeholder="Search by IP address..." oninput="filterVisitors()" style="width:100%;max-width:300px;padding:8px 12px;font-size:14px">
+        </div>
+        <div class="activity-list" id="visitorList">
+            {% for v in visitors %}
+            <div class="activity-item visitor-row" data-ip="{{ v.ip }}">
+                <div class="activity-icon">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="activity-details">
+                    <span class="activity-ip">{{ v.ip }}</span>
+                </div>
+                <div class="activity-time">
+                    {{ v.time[:16].replace('T', ' ') if v.time else 'N/A' }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="no-visitors">
+        <i class="fas fa-user-slash"></i>
+        <p>No visitors yet. Share your tunnel URL to start tracking!</p>
+    </div>
+    {% endif %}
+    
+    <div class="visitors-actions">
+        <button onclick="refreshVisitors()" class="btn-secondary">
+            <i class="fas fa-sync"></i> Refresh
+        </button>
+        <button onclick="clearVisitors()" class="btn-danger">
+            <i class="fas fa-trash"></i> Clear History
+        </button>
+    </div>
+</div>
+
+<div class="warning-box">
+    <h3><i class="fas fa-exclamation-triangle"></i> Important</h3>
+    <p>Before using a tunnel, start the Flask app with <code>start.bat</code> (localhost:5000 must be running)</p>
+</div>
+
+<!-- Cloudflare Tunnel Guide (simplified) -->
+<div class="card" style="border:1px solid var(--border)">
+    <div class="card-header">
+        <i class="fas fa-cloud" style="color:var(--warning)"></i>
+        <h2>Setup: Cloudflare Tunnel <span class="badge badge-success" style="font-size:11px;margin-left:8px">Free &amp; Recommended</span></h2>
+    </div>
+    
+    <div style="margin-bottom:16px">
+        <p style="font-size:14px;color:var(--gray-600);margin-bottom:16px">Cloudflare Tunnel makes your local server publicly accessible — free, no account needed, with automatic HTTPS.</p>
+        
+        <div style="display:flex;flex-direction:column;gap:12px;max-width:100%;overflow:hidden">
+            <div style="display:flex;align-items:flex-start;gap:12px">
+                <span style="width:28px;height:28px;background:var(--primary);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0">1</span>
+                <div style="flex:1">
+                    <p style="font-weight:600;font-size:14px;margin-bottom:4px">Install Cloudflared</p>
+                    <pre style="background:var(--gray-50);color:var(--gray-700);padding:10px 14px;border-radius:var(--radius);font-size:13px;font-family:'Consolas',monospace;border:1px solid var(--border);margin:0;white-space:pre-wrap;word-break:break-all;max-width:100%">winget install Cloudflare.cloudflared</pre>
+                    <p style="font-size:12px;color:var(--gray-500);margin-top:4px">Or <a href="https://github.com/cloudflare/cloudflared/releases" target="_blank" style="color:var(--primary)">download from GitHub</a></p>
+                </div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px">
+                <span style="width:28px;height:28px;background:var(--primary);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0">2</span>
+                <div style="flex:1">
+                    <p style="font-weight:600;font-size:14px;margin-bottom:4px">Run the tunnel</p>
+                    <pre style="background:var(--gray-50);color:var(--gray-700);padding:10px 14px;border-radius:var(--radius);font-size:13px;font-family:'Consolas',monospace;border:1px solid var(--border);margin:0;white-space:pre-wrap;word-break:break-all;max-width:100%">cloudflared tunnel --url http://localhost:5000</pre>
+                </div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px">
+                <span style="width:28px;height:28px;background:var(--success);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0">3</span>
+                <div style="flex:1">
+                    <p style="font-weight:600;font-size:14px;margin-bottom:4px">Get your public URL</p>
+                    <p style="font-size:13px;color:var(--gray-600)">You'll get something like <code style="background:var(--primary-light);padding:2px 8px;border-radius:4px;color:var(--primary);font-size:13px">https://random-name.trycloudflare.com</code></p>
+                    <p style="font-size:13px;color:var(--gray-600);margin-top:4px">Click <strong>"Start Online Access"</strong> above or paste the URL manually.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="help-box" style="margin-bottom:0">
+        <i class="fas fa-lightbulb" style="color:var(--warning)"></i>
+        The URL changes each time you restart the tunnel. You can also use <code style="background:var(--primary-50);padding:2px 6px;border-radius:4px">ngrok http 5000</code> as an alternative (requires free account at <a href="https://ngrok.com" target="_blank" style="color:var(--primary)">ngrok.com</a>).
+    </div>
+</div>
+
+<style>
+/* Utility classes */
+.hidden {
+    display: none !important;
+}
+
+.disabled {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+/* Entrance animations for sections */
+.current-url-section,
+.visitors-section,
+.warning-box,
+.tip-box {
+    animation: fadeInUp .4s ease both;
+}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.visitors-section{animation-delay:.05s}
+.warning-box{animation-delay:.1s}
+
+.current-url-section {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    border-left: 4px solid var(--primary);
+}
+
+.url-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.url-header h2 {
+    margin: 0;
+    color: var(--dark);
+}
+
+.local-urls {
+    background: var(--primary-light);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.url-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    flex-wrap: wrap;
+}
+
+.url-row:last-of-type {
+    border-bottom: none;
+}
+
+.url-row.tunnel-row {
+    background: var(--success-light);
+    margin: 0.5rem -1.5rem -1.5rem -1.5rem;
+    padding: 1rem 1.5rem;
+    border-radius: 0 0 12px 12px;
+}
+
+.url-label {
+    min-width: 100px;
+    font-weight: 600;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.url-link {
+    flex-grow: 1;
+    color: var(--primary);
+    text-decoration: none;
+    font-family: 'Consolas', monospace;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    position: relative;
+    z-index: 10;
+    word-break: break-all;
+    overflow-wrap: break-word;
+    min-width: 0;
+}
+
+.url-link:hover {
+    text-decoration: underline;
+    color: var(--primary-dark);
+}
+
+.url-link.tunnel {
+    color: var(--success);
+    font-weight: 700;
+}
+
+.url-link.tunnel:hover {
+    color: var(--success-dark);
+}
+
+.url-note {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.url-note.tunnel-note {
+    color: var(--success);
+}
+
+.copy-btn-small {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.4rem 0.6rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.copy-btn-small:hover {
+    background: var(--primary-dark);
+    transform: scale(1.05);
+}
+
+.share-btn {
+    background: #25D366 !important;
+}
+
+.share-btn:hover {
+    background: #1da851 !important;
+}
+
+/* Share Modal Styles */
+.share-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s;
+}
+
+.share-modal {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    animation: slideUp 0.3s;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.share-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.share-modal-header h3 {
+    margin: 0;
+    color: var(--dark);
+}
+
+.share-modal-header .close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 0.25rem 0.5rem;
+}
+
+.share-modal-header .close-btn:hover {
+    color: var(--text);
+}
+
+.share-url-box {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.share-url-box input {
+    flex-grow: 1;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: 'Consolas', monospace;
+    background: var(--surface);
+}
+
+.share-url-box button {
+    padding: 0.75rem 1.25rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.share-url-box button:hover {
+    background: var(--primary-dark);
+}
+
+.share-options {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.share-options a.share-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.3rem;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.share-options a.share-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.share-options .whatsapp { background: #25D366 !important; }
+.share-options .facebook { background: #1877F2 !important; }
+.share-options .twitter { background: #1DA1F2 !important; }
+.share-options .telegram { background: #0088cc !important; }
+.share-options .line { background: #00B900 !important; }
+.share-options .email { background: #EA4335 !important; }
+
+.share-tip {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-badge.active {
+    background: var(--success-light);
+    color: var(--success-dark);
+}
+
+.status-badge.active i {
+    color: var(--success);
+    animation: pulse 2s infinite;
+}
+
+.status-badge.inactive {
+    background: var(--danger-light);
+    color: var(--danger-dark);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.url-display {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+}
+
+.url-display.active {
+    background: var(--success-light);
+    border: 2px solid var(--success);
+}
+
+.url-display.inactive {
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    color: var(--text-muted);
+}
+
+.url-display a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    word-break: break-all;
+    flex-grow: 1;
+}
+
+.url-display a:hover {
+    text-decoration: underline;
+}
+
+.copy-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.copy-btn:hover {
+    background: var(--primary-dark);
+    transform: scale(1.05);
+}
+
+.url-info {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.tunnel-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.btn-tunnel-start {
+    background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+}
+
+.btn-tunnel-start:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
+}
+
+.btn-tunnel-stop {
+    background: linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s;
+}
+
+.btn-tunnel-stop:hover {
+    background: linear-gradient(135deg, var(--danger-dark) 0%, var(--danger-dark) 100%);
+}
+
+.tunnel-loading {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--primary-light);
+    border-radius: 8px;
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.tunnel-loading .spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--primary-light);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.divider-or {
+    display: flex;
+    align-items: center;
+    margin: 1.5rem 0;
+    color: var(--text-muted);
+}
+
+.divider-or::before,
+.divider-or::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.divider-or span {
+    padding: 0 1rem;
+    font-size: 0.9rem;
+}
+
+.url-input-form {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.url-input-form input {
+    flex: 1;
+    min-width: min(300px, 100%);
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.url-input-form input:focus {
+    border-color: var(--primary);
+    outline: none;
+}
+
+.visitors-section {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.visitors-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.visitors-header h2 {
+    margin: 0;
+    color: var(--dark);
+}
+
+.visitors-stats {
+    display: flex;
+    gap: 2rem;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--primary-light);
+    border-radius: 8px;
+}
+
+.stat-item i {
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.visitors-table-container {
+    margin-bottom: 2rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.visitors-table-container h3 {
+    margin-bottom: 1rem;
+    color: var(--dark);
+}
+
+.visitors-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-bg);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.visitors-table th,
+.visitors-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.visitors-table th {
+    background: var(--surface);
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.ip-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.75rem;
+    background: var(--primary-light);
+    border-radius: 20px;
+    font-family: 'Consolas', monospace;
+    font-size: 0.9rem;
+}
+
+.visit-count {
+    display: inline-block;
+    min-width: 30px;
+    padding: 0.25rem 0.75rem;
+    background: var(--primary);
+    color: white;
+    border-radius: 20px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.page-badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    background: var(--surface);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    margin-right: 0.25rem;
+}
+
+.page-badge.more {
+    background: var(--border);
+    color: var(--text-muted);
+}
+
+.activity-log h3 {
+    margin-bottom: 1rem;
+    color: var(--dark);
+}
+
+.activity-list {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+}
+
+.activity-item:hover {
+    background: var(--surface);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--primary-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+}
+
+.activity-details {
+    flex-grow: 1;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.activity-ip {
+    font-family: 'Consolas', monospace;
+    background: var(--primary-light);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+}
+
+.activity-path {
+    color: var(--text-muted);
+}
+
+.activity-time {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-family: 'Consolas', monospace;
+}
+
+.no-visitors {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-muted);
+}
+
+.no-visitors i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.visitors-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--border);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: var(--danger-dark);
+}
+
+.warning-box {
+    background: var(--warning-light);
+    border: 1px solid var(--warning);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border-left: 4px solid var(--warning);
+}
+
+.warning-box h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--warning);
+}
+
+.warning-box p {
+    margin: 0;
+    color: var(--warning);
+}
+
+.warning-box code {
+    background: var(--code-bg);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+}
+
+.tunnel-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(350px, 100%), 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.tunnel-card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.tunnel-card.cloudflare .tunnel-header {
+    background: linear-gradient(135deg, var(--warning) 0%, var(--warning) 100%);
+}
+
+.tunnel-card.ngrok .tunnel-header {
+    background: var(--surface-hover);
+}
+
+.tunnel-header {
+    padding: 1.5rem;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.tunnel-header img {
+    width: 32px;
+    height: 32px;
+}
+
+.tunnel-header h2 {
+    margin: 0;
+    flex-grow: 1;
+}
+
+.badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge.free {
+    background: rgba(255,255,255,0.2);
+    color: white;
+}
+
+.badge.recommended {
+    background: var(--success);
+    color: white;
+}
+
+.tunnel-content {
+    padding: 1.5rem;
+}
+
+.tunnel-content h3 {
+    color: var(--dark);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.tunnel-content h3:first-child {
+    margin-top: 0;
+}
+
+.pros, .cons {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.pros li, .cons li {
+    padding: 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pros i { color: var(--success); }
+.cons i { color: var(--danger); }
+
+.install-steps { margin-top: 1rem; }
+
+.step {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    align-items: flex-start;
+}
+
+.step-num {
+    width: 30px;
+    height: 30px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.step-content { flex-grow: 1; }
+.step-content p { margin: 0 0 0.5rem 0; }
+
+.download-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--primary);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.download-link:hover {
+    background: var(--primary-dark);
+}
+
+.code-block {
+    background: var(--gray-50);
+    color: var(--gray-700);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-family: 'Consolas', monospace;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    font-size: 13px;
+}
+
+.code-block code { color: var(--gray-700); }
+
+.result-box {
+    background: var(--success-light);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1.5rem;
+}
+
+.result-box h4 { margin: 0 0 0.5rem 0; color: var(--success-dark); }
+.result-box p { margin: 0.5rem 0; color: var(--success-dark); }
+
+.url-example {
+    background: var(--surface);
+    color: var(--success);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-family: 'Consolas', monospace;
+    text-align: center;
+    font-weight: 600;
+}
+
+.tip-box {
+    background: var(--primary-light);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border-left: 4px solid var(--primary);
+}
+
+.tip-box h3 { margin-top: 0; color: var(--primary-dark); }
+.tip-box ul { margin: 0; padding-left: 1.5rem; }
+.tip-box li { margin-bottom: 0.5rem; color: var(--primary-dark); }
+.tip-box code { background: var(--code-bg); padding: 0.2rem 0.5rem; border-radius: 4px; }
+
+/* Mobile Responsive for Online Access */
+@media (max-width: 768px) {
+    .page-header h1 { font-size: clamp(1.1rem, 4vw, 1.6rem); word-break: break-word; }
+    .page-header .subtitle { font-size: 0.85rem; }
+}
+@media (max-width: 640px) {
+    .current-url-section,
+    .visitors-section {
+        padding: 1rem;
+        border-radius: 16px;
+        margin-bottom: 1rem;
+    }
+    
+    .url-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .url-header h2 {
+        font-size: 1.1rem;
+    }
+    
+    .local-urls {
+        padding: 1rem;
+        border-radius: 12px;
+    }
+    
+    .url-row {
+        flex-wrap: wrap;
+        padding: 0.75rem 0;
+        gap: 0.5rem;
+    }
+    
+    .url-label {
+        min-width: 100%;
+        font-size: 0.9rem;
+    }
+    
+    .url-link {
+        font-size: 0.85rem;
+        word-break: break-all;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .url-row.tunnel-row {
+        margin: 0.5rem -1rem -1rem -1rem;
+        padding: 1rem;
+    }
+    
+    .copy-btn-small {
+        padding: 0.5rem 0.75rem;
+        min-width: 44px;
+        min-height: 44px;
+    }
+    
+    .url-note {
+        width: 100%;
+        font-size: 0.75rem;
+    }
+    
+    .tunnel-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .btn-tunnel-start,
+    .btn-tunnel-stop {
+        width: 100%;
+        justify-content: center;
+        padding: 1rem;
+        font-size: 1rem;
+    }
+    
+    .tunnel-loading {
+        justify-content: center;
+    }
+    
+    .divider-or {
+        margin: 1rem 0;
+    }
+    
+    .url-input-form {
+        flex-direction: column;
+    }
+    
+    .url-input-form input {
+        min-width: 100%;
+        font-size: 16px;
+        padding: 1rem;
+    }
+    
+    .url-input-form button {
+        width: 100%;
+        justify-content: center;
+        padding: 1rem;
+        font-size: 1rem;
+    }
+    
+    /* Visitors section */
+    .visitors-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .visitors-stats {
+        width: 100%;
+        gap: 0.75rem;
+    }
+    
+    .stat-item {
+        flex: 1;
+        padding: 0.75rem;
+        flex-direction: column;
+        text-align: center;
+        gap: 0.25rem;
+    }
+    
+    .stat-item i {
+        font-size: 1.25rem;
+    }
+    
+    .stat-value {
+        font-size: 1.25rem;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+    }
+    
+    .visitors-table-container {
+        margin: 0 -1rem;
+        width: calc(100% + 2rem);
+        overflow-x: auto;
+    }
+    
+    .visitors-table-container h3 {
+        padding: 0 1rem;
+        font-size: 1rem;
+    }
+    
+    .visitors-table th,
+    .visitors-table td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    .ip-badge {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.5rem;
+    }
+    
+    .visit-count {
+        font-size: 0.8rem;
+        padding: 0.2rem 0.5rem;
+    }
+    
+    .page-badge {
+        font-size: 0.7rem;
+        padding: 0.15rem 0.4rem;
+    }
+    
+    .activity-list {
+        max-height: 300px;
+    }
+    
+    .activity-item {
+        padding: 0.75rem;
+        gap: 0.75rem;
+    }
+    
+    .activity-icon {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+    }
+    
+    .activity-details {
+        flex-direction: column;
+        gap: 0.25rem;
+        min-width: 0;
+    }
+    
+    .activity-ip {
+        font-size: 0.8rem;
+    }
+    
+    .activity-path {
+        font-size: 0.75rem;
+        word-break: break-all;
+    }
+    
+    .activity-time {
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+    
+    .visitors-actions {
+        flex-direction: column;
+    }
+    
+    .visitors-actions button {
+        width: 100%;
+        justify-content: center;
+        padding: 1rem;
+    }
+    
+    /* Warning and tip boxes */
+    .warning-box,
+    .tip-box {
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 1rem;
+    }
+    
+    .warning-box h3,
+    .tip-box h3 {
+        font-size: 1rem;
+    }
+    
+    .warning-box p,
+    .tip-box li {
+        font-size: 0.9rem;
+    }
+    
+    /* Tunnel options */
+    .tunnel-options {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .tunnel-header {
+        padding: 1rem;
+    }
+    
+    .tunnel-header h2 {
+        font-size: 1.1rem;
+    }
+    
+    .tunnel-content {
+        padding: 1rem;
+    }
+    
+    .tunnel-content h3 {
+        font-size: 1rem;
+    }
+    
+    .step {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .step-num {
+        align-self: flex-start;
+    }
+    
+    .download-link {
+        display: block;
+        text-align: center;
+        padding: 1rem;
+    }
+    
+    .code-block {
+        font-size: 0.8rem;
+        padding: 0.75rem;
+    }
+    
+    .no-visitors {
+        padding: 2rem 1rem;
+    }
+    
+    .no-visitors i {
+        font-size: 2.5rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyToClipboard(text) {
+    // Check if clipboard API is available
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            showCopySuccess();
+        }).catch(err => {
+            // Fallback if clipboard write fails
+            fallbackCopyToClipboard(text);
+        });
+    } else {
+        // Fallback for browsers without clipboard API
+        fallbackCopyToClipboard(text);
+    }
+}
+
+function fallbackCopyToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        document.execCommand('copy');
+        showCopySuccess();
+    } catch (err) {
+        console.log('Copy failed:', err);
+        // Show the URL in an alert as last resort
+        alert('Please copy this URL manually:\n' + text);
+    }
+    
+    document.body.removeChild(textArea);
+}
+
+function showCopySuccess() {
+    // Show brief success feedback
+    const toast = document.createElement('div');
+    toast.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--success);color:white;padding:12px 24px;border-radius:8px;z-index:9999;animation:fadeIn 0.3s';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+}
+
+function copyUrl() {
+    const urlEl = document.getElementById('tunnelUrlLink');
+    if (urlEl && urlEl.href && !urlEl.href.includes('#')) {
+        copyToClipboard(urlEl.href);
+    } else {
+        alert('No tunnel URL to copy');
+    }
+}
+
+function openTunnelLink() {
+    const urlEl = document.getElementById('tunnelUrlLink');
+    if (urlEl && urlEl.href && !urlEl.href.endsWith('#')) {
+        window.open(urlEl.href, '_blank', 'noopener,noreferrer');
+    } else {
+        alert('No tunnel URL available. Please start the tunnel first.');
+    }
+}
+
+function shareLink() {
+    const urlEl = document.getElementById('tunnelUrlLink');
+    if (!urlEl || !urlEl.href) {
+        alert('No tunnel URL to share');
+        return;
+    }
+    
+    const shareUrl = urlEl.href;
+    const shareTitle = 'Aeroponic Snapshot Database';
+    const shareText = 'Access the Aeroponic Snapshot Database!';
+    
+    // Use Web Share API if available (mobile)
+    if (navigator.share) {
+        navigator.share({
+            title: shareTitle,
+            text: shareText,
+            url: shareUrl
+        }).catch(err => console.log('Share cancelled'));
+    } else {
+        // Fallback: show share options modal
+        showShareModal(shareUrl);
+    }
+}
+
+function showShareModal(url) {
+    const encodedUrl = encodeURIComponent(url);
+    const text = encodeURIComponent('Access the Aeroponic Snapshot Database!');
+    
+    const modal = document.createElement('div');
+    modal.className = 'share-modal-overlay';
+    modal.innerHTML = `
+        <div class="share-modal">
+            <div class="share-modal-header">
+                <h3><i class="fas fa-share-alt"></i> Share Link</h3>
+                <button onclick="this.closest('.share-modal-overlay').remove()" class="close-btn">&times;</button>
+            </div>
+            <div class="share-url-box">
+                <input type="text" value="${url}" readonly id="shareUrlInput">
+                <button onclick="copyToClipboard('${url}'); this.innerHTML='<i class=\\'fas fa-check\\'></i> Copied!';">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+            <div class="share-options">
+                <a href="https://wa.me/?text=${text}%20${encodedUrl}" target="_blank" class="share-btn whatsapp" title="WhatsApp">
+                    <i class="fab fa-whatsapp"></i>
+                </a>
+                <a href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}" target="_blank" class="share-btn facebook" title="Facebook">
+                    <i class="fab fa-facebook-f"></i>
+                </a>
+                <a href="https://twitter.com/intent/tweet?url=${encodedUrl}&text=${text}" target="_blank" class="share-btn twitter" title="Twitter">
+                    <i class="fab fa-twitter"></i>
+                </a>
+                <a href="https://t.me/share/url?url=${encodedUrl}&text=${text}" target="_blank" class="share-btn telegram" title="Telegram">
+                    <i class="fab fa-telegram-plane"></i>
+                </a>
+                <a href="https://line.me/R/msg/text/?${text}%20${encodedUrl}" target="_blank" class="share-btn line" title="LINE">
+                    <i class="fab fa-line"></i>
+                </a>
+                <a href="mailto:?subject=${text}&body=${text}%20${encodedUrl}" class="share-btn email" title="Email">
+                    <i class="fas fa-envelope"></i>
+                </a>
+            </div>
+            <p class="share-tip"><i class="fas fa-info-circle"></i> Click any icon to share, or copy the link above</p>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Close on overlay click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
+}
+
+function clearTunnelUrl() {
+    if (!confirm('Clear the tunnel URL?')) return;
+    
+    fetch('/api/tunnel-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: '' })
+    })
+    .then(() => location.reload());
+}
+
+function refreshVisitors() {
+    location.reload();
+}
+
+function clearVisitors() {
+    if (!confirm('Clear all visitor history?')) return;
+    
+    fetch('/api/visitors/clear', { method: 'POST' })
+    .then(() => location.reload());
+}
+
+function filterVisitors() {
+    const query = document.getElementById('visitorSearch').value.toLowerCase();
+    document.querySelectorAll('.visitor-row').forEach(row => {
+        const ip = row.getAttribute('data-ip').toLowerCase();
+        row.style.display = ip.includes(query) ? '' : 'none';
+    });
+}
+
+// Store the current tunnel URL to detect changes
+let currentTunnelUrl = null;
+
+function startTunnel() {
+    const startBtn = document.getElementById('startTunnelBtn');
+    const loadingEl = document.getElementById('tunnelLoading');
+    
+    // Stop health check while starting
+    if (healthCheckInterval) {
+        clearInterval(healthCheckInterval);
+        healthCheckInterval = null;
+    }
+    
+    startBtn.classList.add('hidden');
+    loadingEl.classList.remove('hidden');
+    loadingEl.style.display = 'flex';
+    loadingEl.querySelector('span').textContent = 'Starting tunnel, please wait (10-30 seconds)...';
+    
+    console.log('[TUNNEL] Starting tunnel request...');
+    
+    fetch('/api/tunnel/start', { method: 'POST' })
+    .then(response => response.json())
+    .then(data => {
+        console.log('[TUNNEL] Start response:', data);
+        
+        if (data.success && data.url) {
+            loadingEl.classList.add('hidden');
+            loadingEl.style.display = 'none';
+            
+            // Store the new URL
+            currentTunnelUrl = data.url;
+            console.log('[TUNNEL] New URL:', currentTunnelUrl);
+            
+            // Update UI with new tunnel URL
+            const tunnelLink = document.getElementById('tunnelUrlLink');
+            const tunnelRow = document.getElementById('tunnelRow');
+            
+            // Force remove and re-add tunnel row to ensure update
+            tunnelRow.classList.remove('hidden');
+            tunnelRow.style.display = 'flex';
+            
+            // Clear and set new URL
+            tunnelLink.textContent = '';
+            tunnelLink.href = '#';
+            
+            // Set new URL after a brief delay to ensure DOM update
+            setTimeout(() => {
+                tunnelLink.textContent = data.url;
+                tunnelLink.href = data.url;
+                tunnelLink.style.pointerEvents = 'auto';
+                tunnelLink.style.opacity = '1';
+                tunnelLink.classList.remove('disabled');
+                
+                // Force show the URL in an alert so user definitely sees it
+                alert('🎉 Tunnel Ready!\n\nYour NEW URL is:\n' + data.url + '\n\nThis URL has been copied to clipboard.');
+            }, 100);
+            
+            document.getElementById('tunnelSetAt').classList.remove('hidden');
+            document.getElementById('tunnelSetAt').style.display = 'block';
+            document.getElementById('setAtTime').textContent = new Date().toLocaleString();
+            document.getElementById('stopTunnelBtn').classList.remove('hidden');
+            document.getElementById('stopTunnelBtn').style.display = 'inline-flex';
+            
+            // Update status badge
+            const status = document.getElementById('tunnelStatus');
+            status.className = 'status-badge active';
+            status.innerHTML = '<i class="fas fa-circle"></i> Active';
+            
+            // Copy to clipboard automatically
+            copyToClipboard(data.url);
+            
+            // Show success message with the actual URL
+            showNotification('✅ Tunnel Started!', 'NEW URL: ' + data.url, 'success');
+            
+            // Restart health check after tunnel is running
+            setTimeout(() => {
+                startHealthCheck();
+            }, 5000);
+        } else if (data.status === 'starting') {
+            // Tunnel is starting, wait and check status
+            loadingEl.querySelector('span').textContent = 'Tunnel is starting, waiting for URL...';
+            waitForTunnelUrl();
+        } else if (data.error && data.error.includes('already running')) {
+            loadingEl.classList.add('hidden');
+            loadingEl.style.display = 'none';
+            startBtn.classList.add('hidden');
+            document.getElementById('stopTunnelBtn').classList.remove('hidden');
+            document.getElementById('stopTunnelBtn').style.display = 'inline-flex';
+            if (data.url) {
+                const tunnelLink = document.getElementById('tunnelUrlLink');
+                document.getElementById('tunnelRow').style.display = 'flex';
+                tunnelLink.textContent = data.url;
+                tunnelLink.href = data.url;
+                tunnelLink.style.pointerEvents = 'auto';
+                tunnelLink.style.opacity = '1';
+                
+                const status = document.getElementById('tunnelStatus');
+                status.className = 'status-badge active';
+                status.innerHTML = '<i class="fas fa-circle"></i> Active';
+            }
+            showNotification('ℹ️ Tunnel Already Running', 'The tunnel is ready to use!', 'info');
+        } else {
+            loadingEl.classList.add('hidden');
+            loadingEl.style.display = 'none';
+            startBtn.classList.remove('hidden');
+            startBtn.style.display = 'inline-flex';
+            const errorMsg = data.error || 'Unknown error';
+            if (errorMsg.includes('not installed') || errorMsg.includes('not found')) {
+                showNotification('❌ Cloudflared Not Found', 'Please install cloudflared first. Run: winget install Cloudflare.cloudflared', 'error');
+            } else {
+                showNotification('❌ Failed to Start Tunnel', errorMsg, 'error');
+            }
+        }
+    })
+    .catch(error => {
+        loadingEl.classList.add('hidden');
+        loadingEl.style.display = 'none';
+        startBtn.classList.remove('hidden');
+        startBtn.style.display = 'inline-flex';
+        showNotification('❌ Error', 'Failed to start tunnel: ' + error, 'error');
+    });
+}
+
+// Wait for tunnel URL to appear by polling status
+function waitForTunnelUrl() {
+    const loadingEl = document.getElementById('tunnelLoading');
+    const startBtn = document.getElementById('startTunnelBtn');
+    let attempts = 0;
+    const maxAttempts = 30; // 30 seconds max
+    
+    const checkInterval = setInterval(() => {
+        attempts++;
+        loadingEl.querySelector('span').textContent = `Waiting for tunnel URL... (${attempts}/${maxAttempts})`;
+        
+        fetch('/api/tunnel/status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.url) {
+                clearInterval(checkInterval);
+                loadingEl.classList.add('hidden');
+                loadingEl.style.display = 'none';
+                
+                // Update UI
+                const tunnelLink = document.getElementById('tunnelUrlLink');
+                document.getElementById('tunnelRow').classList.remove('hidden');
+                document.getElementById('tunnelRow').style.display = 'flex';
+                tunnelLink.textContent = data.url;
+                tunnelLink.href = data.url;
+                tunnelLink.style.pointerEvents = 'auto';
+                tunnelLink.style.opacity = '1';
+                document.getElementById('tunnelSetAt').classList.remove('hidden');
+                document.getElementById('tunnelSetAt').style.display = 'block';
+                document.getElementById('setAtTime').textContent = new Date().toLocaleString();
+                document.getElementById('stopTunnelBtn').classList.remove('hidden');
+                document.getElementById('stopTunnelBtn').style.display = 'inline-flex';
+                
+                const status = document.getElementById('tunnelStatus');
+                status.className = 'status-badge active';
+                status.innerHTML = '<i class="fas fa-circle"></i> Active';
+                
+                copyToClipboard(data.url);
+                showNotification('✅ Tunnel Started!', 'URL copied to clipboard: ' + data.url, 'success');
+            } else if (data.status === 'error') {
+                clearInterval(checkInterval);
+                loadingEl.classList.add('hidden');
+                loadingEl.style.display = 'none';
+                startBtn.classList.remove('hidden');
+                startBtn.style.display = 'inline-flex';
+                showNotification('❌ Error', data.error || 'Failed to start tunnel', 'error');
+            } else if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                loadingEl.classList.add('hidden');
+                loadingEl.style.display = 'none';
+                startBtn.classList.remove('hidden');
+                startBtn.style.display = 'inline-flex';
+                showNotification('⏱️ Timeout', 'Tunnel is taking too long. Please try again.', 'warning');
+            }
+        })
+        .catch(err => {
+            console.log('Status check error:', err);
+        });
+    }, 1000);
+}
+
+function stopTunnel() {
+    if (!confirm('Stop the tunnel? The share link will no longer work.')) return;
+    
+    // Clear current tunnel URL
+    currentTunnelUrl = null;
+    
+    // Stop health check
+    if (healthCheckInterval) {
+        clearInterval(healthCheckInterval);
+        healthCheckInterval = null;
+    }
+    
+    fetch('/api/tunnel/stop', { method: 'POST' })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+
+// ==========================================
+// AUTO HEALTH CHECK - Check tunnel status every 30 seconds
+// ==========================================
+let healthCheckInterval = null;
+let lastKnownStatus = null;
+
+function startHealthCheck() {
+    if (healthCheckInterval) {
+        clearInterval(healthCheckInterval);
+    }
+    healthCheckInterval = setInterval(checkTunnelHealth, 30000);
+    console.log('[HEALTH] Health check started');
+}
+
+function checkTunnelHealth() {
+    fetch('/api/tunnel/status')
+    .then(response => response.json())
+    .then(data => {
+        updateTunnelStatusUI(data);
+        
+        // If tunnel died unexpectedly, show notification
+        if (lastKnownStatus === 'running' && data.status !== 'running' && data.status !== 'starting') {
+            showNotification('⚠️ Tunnel disconnected!', 'The tunnel connection was lost. Click "Start Tunnel" to reconnect.', 'warning');
+        }
+        
+        lastKnownStatus = data.status;
+        
+        // Also update health check info
+        if (data.status === 'running') {
+            updateHealthInfo(data);
+        }
+    })
+    .catch(err => {
+        console.log('Health check error:', err);
+    });
+}
+
+function updateTunnelStatusUI(data) {
+    const statusBadge = document.getElementById('tunnelStatus');
+    const startBtn = document.getElementById('startTunnelBtn');
+    const stopBtn = document.getElementById('stopTunnelBtn');
+    const tunnelRow = document.getElementById('tunnelRow');
+    const tunnelLink = document.getElementById('tunnelUrlLink');
+    const loadingEl = document.getElementById('tunnelLoading');
+    
+    if (!statusBadge) return;
+    
+    // Hide loading if visible
+    if (loadingEl) loadingEl.style.display = 'none';
+    
+    // Use currentTunnelUrl if set (from recent start), otherwise use data.url
+    const displayUrl = currentTunnelUrl || data.url;
+    
+    // Update currentTunnelUrl from server if it's newer
+    if (data.url && data.url !== currentTunnelUrl) {
+        console.log('[HEALTH] URL from server:', data.url, 'current:', currentTunnelUrl);
+        // Only update if we don't have a recently set URL
+        if (!currentTunnelUrl) {
+            currentTunnelUrl = data.url;
+        }
+    }
+    
+    if ((data.status === 'running' || data.external_running) && displayUrl) {
+        statusBadge.className = 'status-badge active';
+        statusBadge.innerHTML = '<i class="fas fa-circle"></i> Active';
+        if (startBtn) startBtn.style.display = 'none';
+        if (stopBtn) stopBtn.style.display = 'inline-flex';
+        if (tunnelRow) tunnelRow.style.display = 'flex';
+        if (tunnelLink && displayUrl) {
+            tunnelLink.href = displayUrl;
+            tunnelLink.textContent = displayUrl;
+            tunnelLink.style.pointerEvents = 'auto';
+            tunnelLink.style.opacity = '1';
+        }
+        // Show success notification
+        const setAt = document.getElementById('tunnelSetAt');
+        if (setAt) setAt.style.display = 'block';
+    } else if (data.status === 'starting') {
+        // Only show loading if we explicitly started from this page
+        statusBadge.className = 'status-badge starting';
+        statusBadge.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
+        if (startBtn) startBtn.style.display = 'none';
+        if (loadingEl) {
+            loadingEl.style.display = 'flex';
+            loadingEl.querySelector('span').textContent = 'Waiting for tunnel URL...';
+        }
+    } else if (data.status === 'error') {
+        statusBadge.className = 'status-badge error';
+        statusBadge.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error';
+        if (startBtn) startBtn.style.display = 'inline-flex';
+        if (stopBtn) stopBtn.style.display = 'none';
+        if (loadingEl) loadingEl.style.display = 'none';
+    } else {
+        // Default: show start button (stopped or unknown status)
+        statusBadge.className = 'status-badge inactive';
+        statusBadge.innerHTML = '<i class="fas fa-circle"></i> Not Set';
+        if (startBtn) startBtn.style.display = 'inline-flex';
+        if (stopBtn) stopBtn.style.display = 'none';
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+}
+
+function updateHealthInfo(data) {
+    // Update or create health info display
+    let healthInfo = document.getElementById('tunnelHealthInfo');
+    if (!healthInfo) {
+        healthInfo = document.createElement('div');
+        healthInfo.id = 'tunnelHealthInfo';
+        healthInfo.style.cssText = 'font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; display: flex; align-items: center; gap: 1rem;';
+        const tunnelSetAt = document.getElementById('tunnelSetAt');
+        if (tunnelSetAt) {
+            tunnelSetAt.parentNode.insertBefore(healthInfo, tunnelSetAt.nextSibling);
+        }
+    }
+    
+    const lastCheck = data.last_check ? new Date(data.last_check).toLocaleTimeString() : 'N/A';
+    const restartCount = data.restart_count || 0;
+    
+    healthInfo.innerHTML = `
+        <span><i class="fas fa-heartbeat" style="color: var(--success);"></i> Last check: ${lastCheck}</span>
+        ${restartCount > 0 ? `<span><i class="fas fa-redo" style="color: var(--warning);"></i> Auto-restarts: ${restartCount}</span>` : ''}
+        ${data.error ? `<span style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> ${data.error.substring(0, 50)}</span>` : ''}
+    `;
+}
+
+function showNotification(title, message, type = 'info') {
+    const colors = {
+        'info': 'var(--primary)',
+        'success': 'var(--success)',
+        'warning': 'var(--warning)',
+        'error': 'var(--danger)'
+    };
+    
+    const toast = document.createElement('div');
+    toast.innerHTML = `<strong>${title}</strong><br>${message}`;
+    toast.style.cssText = `
+        position: fixed; bottom: 20px; right: 20px; 
+        background: ${colors[type] || colors.info}; color: white; 
+        padding: 15px 24px; border-radius: 8px; z-index: 9999; 
+        animation: fadeIn 0.3s; max-width: 400px; cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    toast.onclick = () => toast.remove();
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 8000);
+}
+
+// Start health check when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize currentTunnelUrl from server-rendered value
+    const tunnelLink = document.getElementById('tunnelUrlLink');
+    if (tunnelLink && tunnelLink.href && !tunnelLink.href.endsWith('#')) {
+        currentTunnelUrl = tunnelLink.href;
+        console.log('[INIT] Initial tunnel URL:', currentTunnelUrl);
+    }
+    
+    // Initial check after 1 second
+    setTimeout(checkTunnelHealth, 1000);
+    
+    // Start health check interval
+    startHealthCheck();
+    
+    // Get initial status - but don't auto-hide the start button
+    fetch('/api/tunnel/status')
+    .then(response => response.json())
+    .then(data => {
+        lastKnownStatus = data.status;
+        console.log('[INIT] Initial status:', data);
+        
+        // Only update UI if we have a URL (tunnel is actually running)
+        if (data.url) {
+            // Update currentTunnelUrl if not already set
+            if (!currentTunnelUrl) {
+                currentTunnelUrl = data.url;
+            }
+            updateTunnelStatusUI({
+                status: 'running',
+                url: data.url,
+                external_running: data.external_running
+            });
+        }
+        // Otherwise, keep the start button visible (default state)
+    });
+});
+
+// Stop health check when page is hidden (to save resources)
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        if (healthCheckInterval) {
+            clearInterval(healthCheckInterval);
+            healthCheckInterval = null;
+        }
+    } else {
+        // Resume checking when page becomes visible
+        checkTunnelHealth();
+        startHealthCheck();
+    }
+});
+</script>
+
+<style>
+/* Additional status badge styles */
+.status-badge.starting {
+    background: var(--warning-light);
+    color: var(--warning);
+}
+
+.status-badge.error {
+    background: var(--danger-light);
+    color: var(--danger-dark);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+{% endblock %}

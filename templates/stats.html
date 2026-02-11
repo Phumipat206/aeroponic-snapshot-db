@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block page_title %}Statistics{% endblock %}
+
+{% block content %}
+<div class="card hero-banner">
+    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+        <i class="fas fa-chart-bar" style="font-size: 2.5rem; color: var(--hero-text);"></i>
+        <div style="flex:1;min-width:200px">
+            <h1 style="font-size: clamp(1.2rem, 4vw, 1.8rem); margin-bottom: 0.5rem; color: var(--hero-text);">Database Statistics</h1>
+            <p style="color: var(--hero-sub);">Overview of all data in the system</p>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <h3>{{ stats.total_snapshots }}</h3>
+        <p><i class="fas fa-image"></i> Total Snapshots</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.total_categories }}</h3>
+        <p><i class="fas fa-folder"></i> Categories</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.total_videos }}</h3>
+        <p><i class="fas fa-video"></i> Videos Created</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ "%.2f"|format(stats.total_size_bytes / (1024*1024*1024)) }} GB</h3>
+        <p><i class="fas fa-database"></i> Storage Used</p>
+    </div>
+</div>
+
+{% if stats.earliest_snapshot and stats.latest_snapshot %}
+<!-- Timeline -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-clock"></i>
+        <h2>Data Timeline</h2>
+    </div>
+    <div class="form-grid">
+        <div style="padding: 1.25rem; background: var(--primary-light); border-radius: 8px; text-align: center;">
+            <i class="fas fa-play-circle" style="font-size: 2rem; color: var(--primary); margin-bottom: 0.5rem;"></i>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Earliest Snapshot</p>
+            <p style="font-weight: 600; color: var(--text-heading); font-size: 1.1rem;">{{ stats.earliest_snapshot }}</p>
+        </div>
+        <div style="padding: 1.25rem; background: var(--accent-light); border-radius: 8px; text-align: center;">
+            <i class="fas fa-flag-checkered" style="font-size: 2rem; color: var(--accent); margin-bottom: 0.5rem;"></i>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Latest Snapshot</p>
+            <p style="font-weight: 600; color: var(--text-heading); font-size: 1.1rem;">{{ stats.latest_snapshot }}</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Category Stats -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-folder-tree"></i>
+        <h2>Snapshots by Category</h2>
+    </div>
+    {% if category_stats %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Image Count</th>
+                    <th>Total Size</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in category_stats %}
+                <tr>
+                    <td><i class="fas fa-folder" style="color: var(--primary); margin-right: 8px;"></i>{{ stat.name }}</td>
+                    <td><span class="badge badge-primary">{{ stat.count }}</span></td>
+                    <td>{{ "%.2f"|format(stat.total_size / (1024*1024)) if stat.total_size else "0" }} MB</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-folder-open"></i>
+        <p>No category data yet</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Monthly Stats -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-calendar-alt"></i>
+        <h2>Monthly Snapshots (Last 12 Months)</h2>
+    </div>
+    {% if monthly_stats %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Image Count</th>
+                    <th>Chart</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set max_count = monthly_stats|map(attribute='count')|max %}
+                {% for stat in monthly_stats %}
+                <tr>
+                    <td><i class="fas fa-calendar" style="color: var(--secondary); margin-right: 8px;"></i>{{ stat.month }}</td>
+                    <td><span class="badge badge-secondary">{{ stat.count }}</span></td>
+                    <td style="width: 40%;">
+                        <div style="background: var(--light); border-radius: 4px; overflow: hidden;">
+                            <div style="background: linear-gradient(90deg, var(--primary), var(--primary-dark)); height: 24px; width: {{ (stat.count / max_count * 100) if max_count else 0 }}%;"></div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-chart-line"></i>
+        <p>No monthly data yet</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Storage Info -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-hdd"></i>
+        <h2>Storage Information</h2>
+    </div>
+    <div class="form-grid">
+        <div>
+            <p style="margin-bottom: 0.75rem;"><strong><i class="fas fa-server"></i> Type:</strong> Local File System</p>
+            <p style="margin-bottom: 0.75rem;"><strong><i class="fas fa-folder"></i> Location:</strong> ./snapshots/</p>
+            <p><strong><i class="fas fa-database"></i> Database:</strong> SQLite</p>
+        </div>
+        <div>
+            <ul class="feature-list">
+                <li><i class="fas fa-check-circle"></i> Unlimited storage</li>
+                <li><i class="fas fa-check-circle"></i> No monthly fees</li>
+                <li><i class="fas fa-check-circle"></i> Works offline</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

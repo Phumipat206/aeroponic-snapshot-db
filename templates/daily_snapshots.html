@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block page_title %}Daily Snapshots{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-calendar-day"></i>
+        <h2>Daily Snapshot Search</h2>
+    </div>
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Find snapshots taken at the same time each day to track growth</p>
+    
+    <form method="POST">
+        <!-- Project & Camera Filters -->
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="project_name"><i class="fas fa-project-diagram"></i> Project</label>
+                <select id="project_name" name="project_name" onchange="loadCameras()">
+                    <option value="">-- All Projects --</option>
+                    {% if filters and filters.projects %}
+                        {% for project in filters.projects %}
+                            <option value="{{ project }}" {% if project_name == project %}selected{% endif %}>
+                                {{ project }}
+                            </option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="camera_id"><i class="fas fa-camera"></i> Camera</label>
+                <select id="camera_id" name="camera_id">
+                    <option value="">-- All Cameras --</option>
+                    {% if filters and filters.cameras %}
+                        {% for camera in filters.cameras %}
+                            <option value="{{ camera }}" {% if camera_id == camera %}selected{% endif %}>
+                                {{ camera }}
+                            </option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-grid form-grid-3col">
+            <div class="form-group">
+                <label for="hour"><i class="fas fa-clock"></i> Hour (0-23)</label>
+                <input type="number" id="hour" name="hour" min="0" max="23" required
+                       value="{% if hour is defined %}{{ hour }}{% else %}12{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="minute"><i class="fas fa-clock"></i> Minute (0-59)</label>
+                <input type="number" id="minute" name="minute" min="0" max="59"
+                       value="{% if minute is defined %}{{ minute }}{% else %}0{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="tolerance"><i class="fas fa-arrows-alt-h"></i> Tolerance (±minutes)</label>
+                <input type="number" id="tolerance" name="tolerance" min="1" max="60"
+                       value="{% if tolerance is defined %}{{ tolerance }}{% else %}5{% endif %}">
+            </div>
+        </div>
+        
+        <button type="submit">
+            <i class="fas fa-search"></i> Search
+        </button>
+    </form>
+</div>
+
+{% if snapshots is not none %}
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-images"></i>
+        <h2>Search Results ({{ snapshots|length }} images)</h2>
+    </div>
+    
+    {% if hour is defined %}
+    <div class="alert alert-info" style="margin-bottom: 1rem;">
+        <i class="fas fa-info-circle"></i>
+        Showing images taken around <strong>{{ "%02d"|format(hour) }}:{{ "%02d"|format(minute) }}</strong> (±{{ tolerance }} minutes)
+        {% if project_name %} | Project: <strong>{{ project_name }}</strong>{% endif %}
+        {% if camera_id %} | Camera: <strong>{{ camera_id }}</strong>{% endif %}
+    </div>
+    {% endif %}
+    
+    {% if snapshots %}
+    <div class="grid">
+        {% for snapshot in snapshots %}
+        <div class="snapshot-card">
+            <div style="overflow: hidden;">
+                <img src="/snapshot/image/{{ snapshot.id }}" alt="{{ snapshot.original_filename }}" loading="lazy">
+            </div>
+            <div class="info">
+                <h3>{{ snapshot.original_filename[:25] }}{% if snapshot.original_filename|length > 25 %}...{% endif %}</h3>
+                <p><i class="fas fa-calendar"></i> {{ snapshot.capture_time[:10] }}</p>
+                <p><i class="fas fa-clock"></i> {{ snapshot.capture_time[11:19] }}</p>
+                {% if snapshot.project_name %}
+                <p><i class="fas fa-project-diagram"></i> {{ snapshot.project_name }}</p>
+                {% endif %}
+                {% if snapshot.camera_id %}
+                <p><i class="fas fa-camera"></i> {{ snapshot.camera_id }}</p>
+                {% endif %}
+                <p><i class="fas fa-weight"></i> {{ "%.2f"|format(snapshot.file_size / 1024) }} KB</p>
+                <a href="/snapshot/{{ snapshot.id }}" class="btn" style="margin-top: 0.75rem; width: 100%;">
+                    <i class="fas fa-eye"></i> View Details
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-calendar-times"></i>
+        <h3>No Images Found at This Time</h3>
+        <p>Try increasing tolerance or changing the time</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-lightbulb"></i>
+        <h2>How to Use</h2>
+    </div>
+    <ul class="feature-list">
+        <li>
+            <i class="fas fa-check" style="color: var(--primary);"></i>
+            <span><strong>Select project and camera</strong> to view images from the same camera only</span>
+        </li>
+        <li>
+            <i class="fas fa-check" style="color: var(--primary);"></i>
+            <span>Ideal for tracking growth at the same time each day, e.g., 9:00 AM</span>
+        </li>
+        <li>
+            <i class="fas fa-check" style="color: var(--primary);"></i>
+            <span>Increase tolerance if images aren't captured at exact times</span>
+        </li>
+        <li>
+            <i class="fas fa-check" style="color: var(--primary);"></i>
+            <span>Perfect for creating daily time-lapse videos</span>
+        </li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function loadCameras() {
+    const projectSelect = document.getElementById('project_name');
+    const cameraSelect = document.getElementById('camera_id');
+    const selectedProject = projectSelect.value;
+    
+    if (selectedProject) {
+        fetch(`/api/cameras/${encodeURIComponent(selectedProject)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    cameraSelect.innerHTML = '<option value="">-- All Cameras --</option>';
+                    data.cameras.forEach(camera => {
+                        const option = document.createElement('option');
+                        option.value = camera;
+                        option.textContent = camera;
+                        cameraSelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => console.error('Error loading cameras:', error));
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,579 @@
+{% extends "base.html" %}
+
+{% block page_title %}Search Snapshots{% endblock %}
+
+{% block content %}
+<div class="help-box">
+    <h3><i class="fas fa-info-circle"></i> How to Search</h3>
+    <ul>
+        <li>Use <strong>filters</strong> to narrow results by project, camera, category, tags, or date range</li>
+        <li>Leave all fields empty and click Search to show <strong>all snapshots</strong></li>
+        <li>Use <strong>Select All</strong> and <strong>Delete Selected</strong> for bulk management</li>
+        <li>Click <strong>View</strong> to see full details or <strong>Edit</strong> to update metadata</li>
+    </ul>
+</div>
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-search"></i>
+        <h2>Search Snapshots</h2>
+    </div>
+    
+    <form method="POST" id="searchForm">
+        <!-- Project & Camera Filters -->
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="project_name"><i class="fas fa-project-diagram"></i> Project</label>
+                <select id="project_name" name="project_name" onchange="loadCameras()">
+                    <option value="">-- All Projects --</option>
+                    {% if filters and filters.projects %}
+                        {% for project in filters.projects %}
+                            <option value="{{ project }}" {% if query_params and query_params.project_name == project %}selected{% endif %}>
+                                {{ project }}
+                            </option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="camera_id"><i class="fas fa-camera"></i> Camera</label>
+                <select id="camera_id" name="camera_id">
+                    <option value="">-- All Cameras --</option>
+                    {% if filters and filters.cameras %}
+                        {% for camera in filters.cameras %}
+                            <option value="{{ camera }}" {% if query_params and query_params.camera_id == camera %}selected{% endif %}>
+                                {{ camera }}
+                            </option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="category_id"><i class="fas fa-folder"></i> Category</label>
+                <select id="category_id" name="category_id">
+                    <option value="">-- All Categories --</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if query_params and query_params.category_id|string == category.id|string %}selected{% endif %}>
+                            {% if category.parent_id %}└─ {% endif %}{{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="tags"><i class="fas fa-tags"></i> Search Tags</label>
+                <input type="text" id="tags" name="tags" placeholder="Enter tags to search"
+                       value="{% if query_params %}{{ query_params.tags }}{% endif %}">
+            </div>
+        </div>
+        
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="start_time"><i class="fas fa-calendar"></i> From Date</label>
+                <input type="datetime-local" id="start_time" name="start_time" 
+                       value="{% if query_params %}{{ query_params.start_time }}{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="end_time"><i class="fas fa-calendar-check"></i> To Date</label>
+                <input type="datetime-local" id="end_time" name="end_time"
+                       value="{% if query_params %}{{ query_params.end_time }}{% endif %}">
+            </div>
+        </div>
+        
+        <button type="submit">
+            <i class="fas fa-search"></i> Search
+        </button>
+    </form>
+</div>
+
+{% if snapshots is not none %}
+<div class="card">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-images"></i>
+            {% if pagination %}
+            <h2>Results ({{ pagination.total_count }} images) - Page {{ pagination.page }}/{{ pagination.total_pages }}</h2>
+            {% else %}
+            <h2>Results ({{ snapshots|length }} images)</h2>
+            {% endif %}
+        </div>
+        
+        {% if snapshots %}
+        <!-- Bulk Actions -->
+        <div class="bulk-actions" style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <label class="checkbox-wrapper" style="margin: 0; cursor: pointer;">
+                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                <span style="font-size: 14px;"><i class="fas fa-check-double"></i> Select All</span>
+            </label>
+            <span id="selectedCount" style="color: var(--primary); font-weight: 500; font-size: 14px;">(0 selected)</span>
+            <button type="button" id="deleteSelectedBtn" class="btn btn-danger" style="padding: 8px 16px; font-size: 13px;" onclick="deleteSelected()" disabled>
+                <i class="fas fa-trash"></i> Delete Selected
+            </button>
+        </div>
+        {% endif %}
+    </div>
+    
+    {% if snapshots %}
+    
+    <!-- Pagination Top -->
+    {% if pagination and pagination.total_pages > 1 %}
+    <div class="pagination" style="margin-bottom: 1rem;">
+        {% if pagination.has_prev %}
+        <a href="/query?search=1&page={{ pagination.page - 1 }}&project_name={{ query_params.project_name }}&camera_id={{ query_params.camera_id }}&category_id={{ query_params.category_id }}&start_time={{ query_params.start_time }}&end_time={{ query_params.end_time }}&tags={{ query_params.tags }}" class="btn btn-secondary" style="padding: 8px 16px;">
+            <i class="fas fa-chevron-left"></i> Previous
+        </a>
+        {% endif %}
+        
+        <span style="padding: 8px 16px; background: var(--primary); color: var(--text); border-radius: 4px; font-size: 14px;">
+            {{ pagination.page }} / {{ pagination.total_pages }}
+        </span>
+        
+        {% if pagination.has_next %}
+        <a href="/query?search=1&page={{ pagination.page + 1 }}&project_name={{ query_params.project_name }}&camera_id={{ query_params.camera_id }}&category_id={{ query_params.category_id }}&start_time={{ query_params.start_time }}&end_time={{ query_params.end_time }}&tags={{ query_params.tags }}" class="btn btn-secondary" style="padding: 8px 16px;">
+            Next <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <div class="grid">
+        {% for snapshot in snapshots %}
+        <div class="snapshot-card" id="snapshot-{{ snapshot.id }}">
+            <!-- Checkbox for selection -->
+            <div style="position: absolute; top: 8px; left: 8px; z-index: 10;">
+                <label class="checkbox-wrapper" style="background:var(--overlay-bg);backdrop-filter:blur(4px);padding:4px 8px;border-radius:4px;cursor:pointer;margin:0">
+                    <input type="checkbox" class="snapshot-checkbox" value="{{ snapshot.id }}" onchange="updateSelectedCount()">
+                </label>
+            </div>
+            <div style="overflow: hidden; position: relative;">
+                <img src="/snapshot/image/{{ snapshot.id }}" alt="{{ snapshot.original_filename }}" loading="lazy">
+            </div>
+            <div class="info">
+                <h3>{{ snapshot.original_filename[:25] }}{% if snapshot.original_filename|length > 25 %}...{% endif %}</h3>
+                <p><i class="fas fa-calendar"></i> {{ snapshot.capture_time }}</p>
+                {% if snapshot.project_name %}
+                <p><i class="fas fa-project-diagram"></i> {{ snapshot.project_name }}</p>
+                {% endif %}
+                {% if snapshot.camera_id %}
+                <p><i class="fas fa-camera"></i> {{ snapshot.camera_id }}</p>
+                {% endif %}
+                <p><i class="fas fa-weight"></i> {{ "%.2f"|format(snapshot.file_size / 1024) }} KB</p>
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <a href="/snapshot/{{ snapshot.id }}" class="btn" style="flex: 1; font-size: 12px; padding: 8px;">
+                        <i class="fas fa-eye"></i> View
+                    </a>
+                    <a href="/snapshot/{{ snapshot.id }}/edit" class="btn btn-secondary" style="flex: 1; font-size: 12px; padding: 8px;">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                </div>
+                <button type="button" class="btn btn-danger" style="width: 100%; margin-top: 8px; font-size: 12px; padding: 8px;" onclick="deleteSingle({{ snapshot.id }})">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination Bottom -->
+    {% if pagination and pagination.total_pages > 1 %}
+    <div class="pagination" style="margin-top: 24px;">
+        {% if pagination.has_prev %}
+        <a href="/query?search=1&page={{ pagination.page - 1 }}&project_name={{ query_params.project_name }}&camera_id={{ query_params.camera_id }}&category_id={{ query_params.category_id }}&start_time={{ query_params.start_time }}&end_time={{ query_params.end_time }}&tags={{ query_params.tags }}" class="btn btn-secondary" style="padding: 8px 16px;">
+            <i class="fas fa-chevron-left"></i> Previous
+        </a>
+        {% endif %}
+        
+        <!-- Page Numbers -->
+        <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center;">
+            {% set start_page = [1, pagination.page - 2]|max %}
+            {% set end_page = [pagination.total_pages, pagination.page + 2]|min %}
+            
+            {% if start_page > 1 %}
+            <a href="/query?search=1&page=1&project_name={{ query_params.project_name }}&camera_id={{ query_params.camera_id }}&category_id={{ query_params.category_id }}&start_time={{ query_params.start_time }}&end_time={{ query_params.end_time }}&tags={{ query_params.tags }}" class="page-btn">1</a>
+            {% if start_page > 2 %}<span style="padding: 0 8px; color: var(--gray);">...</span>{% endif %}
+            {% endif %}
+            
+            {% for p in range(start_page, end_page + 1) %}
+            <a href="/query?search=1&page={{ p }}&project_name={{ query_params.project_name }}&camera_id={{ query_params.camera_id }}&category_id={{ query_params.category_id }}&start_time={{ query_params.start_time }}&end_time={{ query_params.end_time }}&tags={{ query_params.tags }}" 
+               class="page-btn {% if p == pagination.page %}active{% endif %}">{{ p }}</a>
+            {% endfor %}
+            
+            {% if end_page < pagination.total_pages %}
+            {% if end_page < pagination.total_pages - 1 %}<span style="padding: 0 8px; color: var(--gray);">...</span>{% endif %}
+            <a href="/query?search=1&page={{ pagination.total_pages }}&project_name={{ query_params.project_name }}&camera_id={{ query_params.camera_id }}&category_id={{ query_params.category_id }}&start_time={{ query_params.start_time }}&end_time={{ query_params.end_time }}&tags={{ query_params.tags }}" class="page-btn">{{ pagination.total_pages }}</a>
+            {% endif %}
+        </div>
+        
+        {% if pagination.has_next %}
+        <a href="/query?search=1&page={{ pagination.page + 1 }}&project_name={{ query_params.project_name }}&camera_id={{ query_params.camera_id }}&category_id={{ query_params.category_id }}&start_time={{ query_params.start_time }}&end_time={{ query_params.end_time }}&tags={{ query_params.tags }}" class="btn btn-secondary" style="padding: 8px 16px;">
+            Next <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    
+    <!-- Jump to Page -->
+    <div style="margin-top: 16px; text-align: center;">
+        <span style="color: var(--gray); font-size: 14px;">Go to page:</span>
+        <input type="number" id="jumpPage" min="1" max="{{ pagination.total_pages }}" value="{{ pagination.page }}" style="width: 80px; padding: 8px; border-radius: 4px; border: 1px solid var(--border); text-align: center;">
+        <button type="button" onclick="jumpToPage()" class="btn" style="padding: 8px 16px;">Go</button>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-search"></i>
+        <h3>No snapshots found</h3>
+        <p>Try adjusting your search criteria</p>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<div class="card">
+    <div class="empty-state">
+        <i class="fas fa-images"></i>
+        <h3>Start searching</h3>
+        <p>Enter your search criteria above and click Search</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<style>
+.btn-danger {
+    background: var(--gradient-danger);
+    color: white;
+    border: none;
+}
+.btn-danger:hover {
+    box-shadow: 0 4px 15px rgba(239,68,68,0.3);
+}
+.btn-danger:disabled {
+    background: var(--gray-300);
+    cursor: not-allowed;
+}
+.snapshot-card {
+    position: relative;
+}
+.snapshot-card.selected {
+    box-shadow: 0 0 0 2px var(--primary);
+}
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.2s;
+    border: 1px solid var(--border);
+}
+.page-btn:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: var(--primary);
+}
+.page-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+    .card-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+    
+    .bulk-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    
+    .bulk-actions .checkbox-wrapper {
+        padding: 12px;
+        background: var(--surface);
+        border-radius: 8px;
+        justify-content: center;
+    }
+    
+    #selectedCount {
+        text-align: center;
+        display: block;
+    }
+    
+    #deleteSelectedBtn {
+        width: 100%;
+        padding: 14px !important;
+        font-size: 15px !important;
+    }
+    
+    .grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    
+    .snapshot-card img {
+        height: 100px;
+    }
+    
+    .snapshot-card .info {
+        padding: 10px;
+    }
+    
+    .snapshot-card .info h3 {
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+    
+    .snapshot-card .info p {
+        font-size: 10px;
+        margin: 2px 0;
+    }
+    
+    .snapshot-card .info p i {
+        width: 12px;
+        font-size: 10px;
+    }
+    
+    .snapshot-card .info > div {
+        flex-direction: column;
+        gap: 4px !important;
+    }
+    
+    .snapshot-card .info .btn {
+        font-size: 11px !important;
+        padding: 10px 6px !important;
+    }
+    
+    .snapshot-card .info .btn-danger {
+        font-size: 11px !important;
+        padding: 10px !important;
+    }
+    
+    .snapshot-card .checkbox-wrapper {
+        padding: 6px !important;
+    }
+    
+    .pagination {
+        gap: 8px;
+    }
+    
+    .pagination .btn {
+        padding: 10px 12px !important;
+        font-size: 12px !important;
+    }
+    
+    .page-btn {
+        min-width: 32px;
+        height: 32px;
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+    
+    #jumpPage {
+        width: 60px;
+        padding: 10px;
+    }
+}
+
+@media (max-width: 380px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .snapshot-card img {
+        height: 140px;
+    }
+    
+    .snapshot-card .info h3 {
+        font-size: 14px;
+    }
+    
+    .snapshot-card .info p {
+        font-size: 12px;
+    }
+}
+</style>
+
+<script>
+function loadCameras() {
+    const projectSelect = document.getElementById('project_name');
+    const cameraSelect = document.getElementById('camera_id');
+    const selectedProject = projectSelect.value;
+    
+    if (selectedProject) {
+        fetch(`/api/cameras/${encodeURIComponent(selectedProject)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    cameraSelect.innerHTML = '<option value="">-- All Cameras --</option>';
+                    data.cameras.forEach(camera => {
+                        const option = document.createElement('option');
+                        option.value = camera;
+                        option.textContent = camera;
+                        cameraSelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => console.error('Error loading cameras:', error));
+    }
+}
+
+function toggleSelectAll() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.snapshot-checkbox');
+    
+    checkboxes.forEach(cb => {
+        cb.checked = selectAllCheckbox.checked;
+        updateCardStyle(cb);
+    });
+    
+    updateSelectedCount();
+}
+
+function updateCardStyle(checkbox) {
+    const card = checkbox.closest('.snapshot-card');
+    if (checkbox.checked) {
+        card.classList.add('selected');
+    } else {
+        card.classList.remove('selected');
+    }
+}
+
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.snapshot-checkbox:checked');
+    const count = checkboxes.length;
+    const countSpan = document.getElementById('selectedCount');
+    const deleteBtn = document.getElementById('deleteSelectedBtn');
+    
+    if (countSpan) countSpan.textContent = `(${count} selected)`;
+    if (deleteBtn) deleteBtn.disabled = count === 0;
+    
+    document.querySelectorAll('.snapshot-checkbox').forEach(cb => updateCardStyle(cb));
+    
+    const allCheckboxes = document.querySelectorAll('.snapshot-checkbox');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    if (selectAllCheckbox && allCheckboxes.length > 0) {
+        selectAllCheckbox.checked = checkboxes.length === allCheckboxes.length;
+    }
+}
+
+function getSelectedIds() {
+    const checkboxes = document.querySelectorAll('.snapshot-checkbox:checked');
+    return Array.from(checkboxes).map(cb => parseInt(cb.value));
+}
+
+function deleteSingle(snapshotId) {
+    if (!confirm('Are you sure you want to delete this image?')) return;
+    
+    fetch(`/api/snapshot/${snapshotId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const card = document.getElementById(`snapshot-${snapshotId}`);
+            if (card) {
+                card.style.transition = 'opacity 0.3s, transform 0.3s';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.8)';
+                setTimeout(() => card.remove(), 300);
+            }
+            updateSelectedCount();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function deleteSelected() {
+    const ids = getSelectedIds();
+    
+    if (ids.length === 0) {
+        alert('Please select images to delete');
+        return;
+    }
+    
+    if (!confirm(`Are you sure you want to delete ${ids.length} images?\n\n⚠️ This action cannot be undone!`)) return;
+    
+    const deleteBtn = document.getElementById('deleteSelectedBtn');
+    deleteBtn.disabled = true;
+    deleteBtn.innerHTML = '<span class="spinner"></span> Deleting...';
+    
+    fetch('/api/snapshots/delete-multiple', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ids: ids })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            ids.forEach(id => {
+                const card = document.getElementById(`snapshot-${id}`);
+                if (card) {
+                    card.style.transition = 'opacity 0.3s, transform 0.3s';
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.8)';
+                    setTimeout(() => card.remove(), 300);
+                }
+            });
+            
+            setTimeout(() => {
+                alert(`Successfully deleted ${data.deleted_count} images`);
+                updateSelectedCount();
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete Selected';
+            }, 350);
+        } else {
+            alert('Error: ' + data.error);
+            deleteBtn.disabled = false;
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete Selected';
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete Selected';
+    });
+}
+
+function jumpToPage() {
+    const pageInput = document.getElementById('jumpPage');
+    const page = parseInt(pageInput.value);
+    const maxPage = parseInt(pageInput.max);
+    
+    if (page >= 1 && page <= maxPage) {
+        const params = new URLSearchParams(window.location.search);
+        params.set('page', page);
+        params.set('search', '1');
+        window.location.href = '/query?' + params.toString();
+    } else {
+        alert(`Please enter a page number between 1 and ${maxPage}`);
+    }
+}
+</script>
+{% endblock %}

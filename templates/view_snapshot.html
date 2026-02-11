@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block page_title %}View Snapshot{% endblock %}
+
+{% block content %}
+<div class="card snapshot-detail-card">
+    <div class="card-header">
+        <i class="fas fa-image"></i>
+        <h2>Snapshot Details</h2>
+    </div>
+    
+    <div class="snapshot-content">
+        <!-- Image Preview -->
+        <div class="snapshot-image-section">
+            <img src="/snapshot/image/{{ snapshot.id }}" alt="{{ snapshot.original_filename }}" class="snapshot-preview-img">
+            
+            <div class="snapshot-action-buttons">
+                <a href="/snapshot/image/{{ snapshot.id }}" class="btn" download>
+                    <i class="fas fa-download"></i> Download
+                </a>
+                <a href="/snapshot/{{ snapshot.id }}/edit" class="btn btn-secondary">
+                    <i class="fas fa-edit"></i> Edit
+                </a>
+            </div>
+        </div>
+        
+        <!-- Details -->
+        <div class="snapshot-info-section">
+            <h3 class="snapshot-filename">
+                <i class="fas fa-file-image" style="color: var(--primary); margin-right: 8px;"></i>
+                {{ snapshot.original_filename }}
+            </h3>
+            
+            <div class="snapshot-info-list">
+                <div class="info-row">
+                    <span class="info-label"><i class="fas fa-hashtag"></i> ID</span>
+                    <strong>{{ snapshot.id }}</strong>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i class="fas fa-camera"></i> Capture Time</span>
+                    <strong>{{ snapshot.capture_time }}</strong>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i class="fas fa-upload"></i> Upload Time</span>
+                    <strong>{{ snapshot.upload_time }}</strong>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i class="fas fa-weight"></i> File Size</span>
+                    <strong>{{ "%.2f"|format(snapshot.file_size / 1024) }} KB</strong>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i class="fas fa-expand"></i> Dimensions</span>
+                    <strong>{{ snapshot.width }} × {{ snapshot.height }} px</strong>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i class="fas fa-folder"></i> Category</span>
+                    <strong>{{ snapshot.category_id if snapshot.category_id else 'Not specified' }}</strong>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i class="fas fa-link"></i> Source</span>
+                    <strong>{{ snapshot.source }}</strong>
+                </div>
+            </div>
+            
+            {% if snapshot.tags %}
+            <div class="snapshot-tags">
+                <p class="tags-label"><i class="fas fa-tags"></i> Tags:</p>
+                <div class="tags-container">
+                    {% for tag in snapshot.tags.split(',') %}
+                    <span class="badge badge-primary">{{ tag.strip() }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if snapshot.notes %}
+            <div class="snapshot-notes">
+                <p class="notes-label"><i class="fas fa-sticky-note"></i> Notes:</p>
+                <p>{{ snapshot.notes }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Navigation -->
+<div class="nav-buttons">
+    <button onclick="goBack()" class="btn btn-outline">
+        <i class="fas fa-arrow-left"></i> Back
+    </button>
+    <a href="/" class="btn btn-outline">
+        <i class="fas fa-home"></i> Home
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Force no horizontal scroll */
+    html, body {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+    }
+    
+    .snapshot-detail-card {
+        overflow: hidden;
+        max-width: 100%;
+    }
+    
+    /* Desktop Layout */
+    .snapshot-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        max-width: 100%;
+        overflow: hidden;
+    }
+    
+    .snapshot-image-section {
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+    }
+    
+    .snapshot-preview-img {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        border-radius: 12px;
+        box-shadow: var(--shadow-lg);
+        display: block;
+        object-fit: contain;
+    }
+    
+    .snapshot-action-buttons {
+        margin-top: 1rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .snapshot-action-buttons .btn {
+        flex: 1;
+    }
+    
+    .snapshot-info-section {
+        max-width: 100%;
+        overflow: hidden;
+    }
+    
+    .snapshot-filename {
+        margin-bottom: 1.5rem;
+        color: var(--dark);
+        font-size: 1.25rem;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+    
+    .snapshot-info-list {
+        background: var(--surface);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .info-row {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        color: var(--text-muted);
+    }
+    
+    .snapshot-tags {
+        margin-top: 1.5rem;
+    }
+    
+    .tags-label, .notes-label {
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+    }
+    
+    .tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .snapshot-notes {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: var(--warning-light);
+        border-radius: 8px;
+    }
+    
+    .nav-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+    }
+    
+    .nav-buttons .btn {
+        min-width: 120px;
+    }
+    
+    /* Mobile Layout */
+    @media (max-width: 768px) {
+        .snapshot-content {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+    }
+    
+    @media (max-width: 640px) {
+        .snapshot-detail-card {
+            padding: 12px !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+        }
+        
+        .snapshot-content {
+            gap: 1rem;
+        }
+        
+        .snapshot-image-section {
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+        }
+        
+        .snapshot-preview-img {
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            border-radius: 8px;
+        }
+        
+        .snapshot-action-buttons {
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .snapshot-action-buttons .btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 15px;
+        }
+        
+        .snapshot-filename {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .info-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            padding: 0.75rem 1rem;
+        }
+        
+        .info-row strong {
+            font-size: 14px;
+        }
+        
+        .info-label {
+            font-size: 12px;
+        }
+        
+        .nav-buttons {
+            flex-direction: row;
+        }
+        
+        .nav-buttons .btn {
+            flex: 1;
+            padding: 14px;
+            font-size: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function goBack() {
+    // Go back to previous page without resetting filters
+    if (document.referrer && document.referrer.includes(window.location.origin)) {
+        window.history.back();
+    } else {
+        window.location.href = '/query';
+    }
+}
+</script>
+{% endblock %}

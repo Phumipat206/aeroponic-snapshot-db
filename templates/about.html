@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block page_title %}About{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="hero-banner">
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+        <div style="width:64px;height:64px;background:var(--hero-icon-bg);border-radius:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;backdrop-filter:blur(10px)">
+            <img src="/static/images/logo.png" alt="Logo" style="width:48px;height:48px;object-fit:contain">
+        </div>
+        <div style="flex:1;min-width:200px">
+            <h1 style="font-size:24px;font-weight:700;margin-bottom:6px;color:var(--hero-text)">Aeroponic Snapshot Database</h1>
+            <p style="font-size:14px;line-height:1.6;color:var(--hero-sub)">
+                A web-based platform for managing plant growth snapshots from aeroponic systems.
+                Capture, organize, search, and create time-lapse videos from your plant images.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Project Overview -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-info-circle"></i>
+        <h2>Project Overview</h2>
+    </div>
+    <p style="color:var(--text-secondary);line-height:1.8;font-size:14px;">
+        This application was built for <strong style="color:var(--text)">academic research</strong> in aeroponic plant cultivation.
+        It provides a centralized system for collecting, storing, and analyzing plant growth images
+        captured by cameras placed in aeroponic growing environments.
+    </p>
+    <p style="color:var(--text-secondary);line-height:1.8;font-size:14px;margin-top:12px;">
+        The platform supports both <strong style="color:var(--text)">manual uploads</strong> via a web interface and
+        <strong style="color:var(--text)">automated capture</strong> using Raspberry Pi devices with scheduled crontab scripts.
+        Images can be organized by project, camera, category, and time, making it easy to
+        compare growth patterns and generate time-lapse videos.
+    </p>
+</div>
+
+<!-- Key Features -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-star"></i>
+        <h2>Key Features</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:16px;">
+        <div style="padding:20px;background:var(--primary-light);border-radius:12px;border:1px solid rgba(99,102,241,0.1)">
+            <i class="fas fa-cloud-upload-alt" style="font-size:24px;color:var(--primary);margin-bottom:10px;"></i>
+            <h4 style="margin-bottom:6px;color:var(--text-heading)">Upload & Import</h4>
+            <p style="font-size:13px;color:var(--text-secondary)">Upload single images or bulk-import entire folders with automatic metadata detection.</p>
+        </div>
+        <div style="padding:20px;background:var(--success-light);border-radius:12px;border:1px solid rgba(34,197,94,0.1)">
+            <i class="fas fa-search" style="font-size:24px;color:var(--success);margin-bottom:10px;"></i>
+            <h4 style="margin-bottom:6px;color:var(--text-heading)">Advanced Search</h4>
+            <p style="font-size:13px;color:var(--text-secondary)">Filter by project, camera, category, tags, and date range with pagination.</p>
+        </div>
+        <div style="padding:20px;background:var(--warning-light);border-radius:12px;border:1px solid rgba(245,158,11,0.1)">
+            <i class="fas fa-video" style="font-size:24px;color:var(--warning);margin-bottom:10px;"></i>
+            <h4 style="margin-bottom:6px;color:var(--text-heading)">Time-lapse Videos</h4>
+            <p style="font-size:13px;color:var(--text-secondary)">Generate growth videos with customizable FPS and optional timestamp overlay.</p>
+        </div>
+        <div style="padding:20px;background:var(--danger-light);border-radius:12px;border:1px solid rgba(239,68,68,0.1)">
+            <i class="fas fa-robot" style="font-size:24px;color:var(--danger);margin-bottom:10px;"></i>
+            <h4 style="margin-bottom:6px;color:var(--text-heading)">REST API</h4>
+            <p style="font-size:13px;color:var(--text-secondary)">Fully programmable API for automated uploads from IoT devices and scripts.</p>
+        </div>
+        <div style="padding:20px;background:var(--primary-light);border-radius:12px;border:1px solid var(--border)">
+            <i class="fas fa-folder-tree" style="font-size:24px;color:var(--primary);margin-bottom:10px;"></i>
+            <h4 style="margin-bottom:6px;color:var(--text-heading)">Smart Organization</h4>
+            <p style="font-size:13px;color:var(--text-secondary)">Hierarchical categories, project/camera tagging, and auto-parsed folder structures.</p>
+        </div>
+        <div style="padding:20px;background:var(--accent-light);border-radius:12px;border:1px solid rgba(34,211,238,0.1)">
+            <i class="fas fa-sync-alt" style="font-size:24px;color:var(--accent);margin-bottom:10px;"></i>
+            <h4 style="margin-bottom:6px;color:var(--text-heading)">Auto-Sync</h4>
+            <p style="font-size:13px;color:var(--text-secondary)">Watch folders for new images and import them automatically in real-time.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Technologies Used -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-code"></i>
+        <h2>Technologies Used</h2>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Technology</th>
+                    <th>Purpose</th>
+                    <th>Version</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><i class="fab fa-python" style="color:#6ea9d7;margin-right:8px"></i> <strong>Python</strong></td>
+                    <td>Core programming language for backend logic</td>
+                    <td><span class="badge badge-primary">3.13+</span></td>
+                </tr>
+                <tr>
+                    <td><i class="fas fa-pepper-hot" style="color:var(--text-secondary);margin-right:8px"></i> <strong>Flask</strong></td>
+                    <td>Web framework for routes, templates, and API endpoints</td>
+                    <td><span class="badge badge-primary">3.0+</span></td>
+                </tr>
+                <tr>
+                    <td><i class="fas fa-database" style="color:var(--accent);margin-right:8px"></i> <strong>SQLite</strong></td>
+                    <td>Embedded database with WAL mode for concurrent access</td>
+                    <td><span class="badge badge-secondary">Built-in</span></td>
+                </tr>
+                <tr>
+                    <td><i class="fas fa-eye" style="color:#a78bfa;margin-right:8px"></i> <strong>OpenCV</strong></td>
+                    <td>Image processing and video generation (time-lapse creation)</td>
+                    <td><span class="badge badge-primary">4.x</span></td>
+                </tr>
+                <tr>
+                    <td><i class="fas fa-image" style="color:var(--warning);margin-right:8px"></i> <strong>Pillow (PIL)</strong></td>
+                    <td>Image manipulation, resizing, and format handling</td>
+                    <td><span class="badge badge-primary">10.x</span></td>
+                </tr>
+                <tr>
+                    <td><i class="fab fa-html5" style="color:#ef6547;margin-right:8px"></i> <strong>Jinja2</strong></td>
+                    <td>HTML templating engine for dynamic page rendering</td>
+                    <td><span class="badge badge-secondary">Built-in</span></td>
+                </tr>
+                <tr>
+                    <td><i class="fab fa-css3-alt" style="color:#42a5f5;margin-right:8px"></i> <strong>CSS3</strong></td>
+                    <td>Responsive design with CSS Grid, Flexbox, and custom properties</td>
+                    <td><span class="badge badge-secondary">Modern</span></td>
+                </tr>
+                <tr>
+                    <td><i class="fab fa-js" style="color:#facc15;margin-right:8px"></i> <strong>JavaScript</strong></td>
+                    <td>Frontend interactivity, AJAX uploads, and progress tracking</td>
+                    <td><span class="badge badge-secondary">ES6+</span></td>
+                </tr>
+                <tr>
+                    <td><i class="fab fa-font-awesome" style="color:#6ea9d7;margin-right:8px"></i> <strong>Font Awesome</strong></td>
+                    <td>Icon library for UI elements</td>
+                    <td><span class="badge badge-primary">6.4</span></td>
+                </tr>
+                <tr>
+                    <td><i class="fas fa-font" style="color:#60a5fa;margin-right:8px"></i> <strong>Google Fonts</strong></td>
+                    <td>Inter typeface for clean, modern typography</td>
+                    <td><span class="badge badge-secondary">Inter</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Architecture -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-project-diagram"></i>
+        <h2>System Architecture</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:16px;">
+        <div style="text-align:center;padding:24px 16px;background:var(--surface);border-radius:12px;border:1px solid var(--border)">
+            <i class="fas fa-desktop" style="font-size:28px;color:var(--primary);margin-bottom:10px;display:block"></i>
+            <strong style="display:block;margin-bottom:4px;color:var(--text-heading)">Frontend</strong>
+            <span style="font-size:12px;color:var(--text-muted)">Jinja2 Templates + Vanilla JS<br>Responsive CSS with sidebar nav</span>
+        </div>
+        <div style="text-align:center;padding:24px 16px;background:var(--surface);border-radius:12px;border:1px solid var(--border)">
+            <i class="fas fa-server" style="font-size:28px;color:var(--success);margin-bottom:10px;display:block"></i>
+            <strong style="display:block;margin-bottom:4px;color:var(--text-heading)">Backend</strong>
+            <span style="font-size:12px;color:var(--text-muted)">Flask web server<br>REST API + HTML routes</span>
+        </div>
+        <div style="text-align:center;padding:24px 16px;background:var(--surface);border-radius:12px;border:1px solid var(--border)">
+            <i class="fas fa-database" style="font-size:28px;color:var(--warning);margin-bottom:10px;display:block"></i>
+            <strong style="display:block;margin-bottom:4px;color:var(--text-heading)">Database</strong>
+            <span style="font-size:12px;color:var(--text-muted)">SQLite with WAL mode<br>Connection pooling</span>
+        </div>
+        <div style="text-align:center;padding:24px 16px;background:var(--surface);border-radius:12px;border:1px solid var(--border)">
+            <i class="fas fa-hdd" style="font-size:28px;color:var(--danger);margin-bottom:10px;display:block"></i>
+            <strong style="display:block;margin-bottom:4px;color:var(--text-heading)">Storage</strong>
+            <span style="font-size:12px;color:var(--text-muted)">Local file system<br>Unlimited capacity</span>
+        </div>
+    </div>
+</div>
+
+<!-- IoT Integration -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-microchip"></i>
+        <h2>IoT Integration</h2>
+    </div>
+    <p style="color:var(--text-secondary);line-height:1.8;font-size:14px;margin-bottom:16px;">
+        The system is designed for seamless integration with <strong style="color:var(--text)">Raspberry Pi</strong> devices
+        placed inside aeroponic growing chambers. Each Pi can be configured to automatically
+        capture images at scheduled intervals and upload them via the REST API.
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:12px;">
+        <div style="padding:16px;background:var(--success-light);border-radius:8px;border-left:3px solid var(--success)">
+            <strong style="font-size:13px;color:var(--text)"><i class="fas fa-camera" style="color:var(--success);margin-right:6px"></i>Auto-Capture</strong>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:4px">Crontab-based scheduling for automated snapshots</p>
+        </div>
+        <div style="padding:16px;background:var(--primary-light);border-radius:8px;border-left:3px solid var(--primary)">
+            <strong style="font-size:13px;color:var(--text)"><i class="fas fa-upload" style="color:var(--primary);margin-right:6px"></i>Auto-Upload</strong>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:4px">Scripts upload images directly to the server via API</p>
+        </div>
+        <div style="padding:16px;background:var(--warning-light);border-radius:8px;border-left:3px solid var(--warning)">
+            <strong style="font-size:13px;color:var(--text)"><i class="fas fa-tags" style="color:var(--warning);margin-right:6px"></i>Auto-Tag</strong>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:4px">Camera ID and project names embedded automatically</p>
+        </div>
+    </div>
+</div>
+
+<!-- License -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-university"></i>
+        <h2>About This Project</h2>
+    </div>
+    <p style="color:var(--text-secondary);line-height:1.8;font-size:14px;">
+        This project was developed for academic and research purposes in plant science and
+        agricultural technology. It is designed to run locally or on a private network,
+        providing a self-hosted solution with no external dependencies or cloud services required.
+    </p>
+    <div style="margin-top:16px;padding:16px;background:var(--surface);border-radius:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid var(--border);max-width:100%;overflow:hidden">
+        <span class="badge badge-primary"><i class="fas fa-code-branch"></i> Open Source</span>
+        <span class="badge badge-success"><i class="fas fa-server"></i> Self-Hosted</span>
+        <span class="badge badge-secondary"><i class="fas fa-lock"></i> Private Network</span>
+        <span class="badge" style="background:var(--primary-light);color:var(--primary)"><i class="fas fa-graduation-cap"></i> Academic</span>
+    </div>
+</div>
+{% endblock %}

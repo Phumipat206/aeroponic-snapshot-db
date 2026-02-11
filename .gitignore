@@ -1,0 +1,74 @@
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Auth data (contains password hashes & sessions)
+auth.json
+
+# Environment config (contains secrets)
+.env
+
+# SSL Certificates (private key!)
+certs/
+
+# Uploaded snapshots
+snapshots/*
+!snapshots/.gitkeep
+
+# Generated videos
+generated_videos/*
+!generated_videos/.gitkeep
+
+# Logs
+logs/*
+!logs/.gitkeep
+*.log
+
+# cloudflared binary (OS-specific, downloaded at setup)
+src/cloudflared
+src/cloudflared.exe
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+.cache/
+
+# OS
+Thumbs.db
+desktop.ini

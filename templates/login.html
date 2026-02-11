@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <title>Sign In — Aeroponic Snapshot Database</title>
+    <link rel="icon" type="image/png" href="/static/images/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        (function(){
+            var t = localStorage.getItem('theme');
+            if(!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+    <style>
+        /* ===== Dark Theme ===== */
+        [data-theme="dark"] {
+            --bg-body: #0a0a1a;
+            --surface: #1a1a2e;
+            --card-bg: #1a1a2e;
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-glow: rgba(99,102,241,0.25);
+            --primary-light: rgba(99,102,241,0.12);
+            --danger: #ef4444;
+            --danger-light: rgba(239,68,68,0.12);
+            --warning: #f59e0b;
+            --warning-light: rgba(245,158,11,0.12);
+            --success: #22c55e;
+            --text: #e2e8f0;
+            --text-heading: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255,255,255,0.06);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
+            --gradient-primary: linear-gradient(135deg, #6366f1, #8b5cf6);
+            --particle-color: rgba(99,102,241,0.15);
+            --logo-glow: rgba(99,102,241,0.3);
+        }
+
+        /* ===== Light Theme ===== */
+        [data-theme="light"] {
+            --bg-body: #f0f2f5;
+            --surface: #ffffff;
+            --card-bg: #ffffff;
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-glow: rgba(99,102,241,0.2);
+            --primary-light: rgba(99,102,241,0.08);
+            --danger: #dc2626;
+            --danger-light: rgba(220,38,38,0.08);
+            --warning: #d97706;
+            --warning-light: rgba(217,119,6,0.08);
+            --success: #16a34a;
+            --text: #1e293b;
+            --text-heading: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.08);
+            --gradient-primary: linear-gradient(135deg, #6366f1, #8b5cf6);
+            --particle-color: rgba(99,102,241,0.06);
+            --logo-glow: rgba(99,102,241,0.15);
+        }
+
+        *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+        html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-body);
+            color: var(--text);
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+            position: relative;
+            overflow: hidden;
+            transition: background .3s ease, color .3s ease;
+        }
+
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 600px 600px at 20% 30%, var(--particle-color), transparent),
+                radial-gradient(ellipse 500px 500px at 80% 70%, var(--particle-color), transparent),
+                radial-gradient(ellipse 400px 400px at 50% 50%, var(--particle-color), transparent);
+            animation: bgShift 15s ease-in-out infinite alternate;
+            z-index: 0;
+        }
+
+        @keyframes bgShift {
+            0%   { transform: scale(1) rotate(0deg); }
+            100% { transform: scale(1.1) rotate(3deg); }
+        }
+
+        .login-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 420px;
+            animation: slideUp .6s cubic-bezier(.16,1,.3,1) both;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px) scale(.96); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Card */
+        .login-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 44px 36px 36px;
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        /* Header */
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 18px;
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px var(--logo-glow);
+            transition: transform .3s ease;
+        }
+
+        .login-logo:hover {
+            transform: scale(1.05) rotate(2deg);
+        }
+
+        .login-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .login-header h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-heading);
+            margin-bottom: 6px;
+            letter-spacing: -0.3px;
+        }
+
+        .login-header p {
+            font-size: 13.5px;
+            color: var(--text-muted);
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 7px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .form-group label i {
+            color: var(--primary);
+            font-size: 12px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 13px 16px;
+            padding-left: 44px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: inherit;
+            background: var(--surface);
+            color: var(--text);
+            transition: all 0.25s;
+            outline: none;
+        }
+
+        .input-wrapper input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-glow);
+        }
+
+        .input-wrapper input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-wrapper .input-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 15px;
+            transition: color .2s;
+            pointer-events: none;
+        }
+
+        .input-wrapper input:focus ~ .input-icon {
+            color: var(--primary);
+        }
+
+        .input-wrapper .toggle-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 6px;
+            font-size: 15px;
+            border-radius: 6px;
+            transition: color .2s;
+        }
+
+        .input-wrapper .toggle-btn:hover {
+            color: var(--primary);
+        }
+
+        /* Remember me */
+        .form-options {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .remember-me input {
+            accent-color: var(--primary);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        /* Button */
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            background: var(--gradient-primary);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.2px;
+        }
+
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+            opacity: 0;
+            transition: opacity .3s;
+        }
+
+        .btn-login:hover {
+            box-shadow: 0 8px 25px var(--primary-glow);
+            transform: translateY(-2px);
+        }
+
+        .btn-login:hover::before {
+            opacity: 1;
+        }
+
+        .btn-login:active {
+            transform: scale(0.98);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Alerts */
+        .login-error {
+            background: var(--danger-light);
+            border: 1px solid rgba(239,68,68,0.15);
+            color: var(--danger);
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: shakeIn .5s ease;
+        }
+
+        .lockout-warning {
+            background: var(--warning-light);
+            border: 1px solid rgba(245,158,11,0.15);
+            color: var(--warning);
+            padding: 14px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .flash-message {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .flash-success {
+            background: rgba(34,197,94,0.1);
+            border: 1px solid rgba(34,197,94,0.15);
+            color: var(--success);
+        }
+
+        .flash-warning {
+            background: var(--warning-light);
+            border: 1px solid rgba(245,158,11,0.15);
+            color: var(--warning);
+        }
+
+        .flash-error {
+            background: var(--danger-light);
+            border: 1px solid rgba(239,68,68,0.15);
+            color: var(--danger);
+        }
+
+        @keyframes shakeIn {
+            0%   { transform: translateX(-10px); opacity: 0; }
+            25%  { transform: translateX(8px); }
+            50%  { transform: translateX(-5px); }
+            75%  { transform: translateX(3px); }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Footer */
+        .login-footer {
+            text-align: center;
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .login-footer p {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .login-footer small {
+            display: inline-block;
+            margin-top: 4px;
+            padding: 3px 10px;
+            background: var(--primary-light);
+            border-radius: 12px;
+            font-size: 11px;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        /* Theme toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all .25s;
+            overflow: hidden;
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .theme-toggle .icon-sun,
+        .theme-toggle .icon-moon {
+            position: absolute;
+            transition: all .3s ease;
+        }
+
+        .theme-toggle .icon-sun { opacity: 0; transform: rotate(-90deg) scale(0.5); }
+        .theme-toggle .icon-moon { opacity: 1; transform: rotate(0) scale(1); }
+        [data-theme="light"] .theme-toggle .icon-sun { opacity: 1; transform: rotate(0) scale(1); }
+        [data-theme="light"] .theme-toggle .icon-moon { opacity: 0; transform: rotate(90deg) scale(0.5); }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 32px 24px 28px;
+                border-radius: 16px;
+            }
+
+            .login-header h1 {
+                font-size: 20px;
+            }
+
+            .input-wrapper input {
+                padding: 12px 14px 12px 40px;
+                font-size: 16px;
+            }
+
+            .btn-login {
+                padding: 13px;
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <i class="fas fa-sun icon-sun"></i>
+        <i class="fas fa-moon icon-moon"></i>
+    </button>
+
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">
+                    <img src="/static/images/logo.png" alt="Aeroponic DB">
+                </div>
+                <h1>Aeroponic Snapshot DB</h1>
+                <p>Please sign in to continue</p>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="flash-message flash-{{ category }}">
+                    <i class="fas {% if category == 'success' %}fa-check-circle{% elif category == 'error' %}fa-exclamation-circle{% elif category == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %}"></i>
+                    <span>{{ message }}</span>
+                </div>
+                {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <!-- Error -->
+            {% if error %}
+            <div class="login-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <!-- Lockout -->
+            {% if lockout_remaining %}
+            <div class="lockout-warning">
+                <i class="fas fa-lock"></i>
+                <span>Account locked. Please wait <strong id="lockoutTimer">{{ lockout_remaining }}</strong> seconds</span>
+            </div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('login') }}">
+                <input type="hidden" name="next" value="{{ next_url or '' }}">
+
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Username</label>
+                    <div class="input-wrapper">
+                        <input type="text" name="username" placeholder="Enter username" required autofocus
+                               value="{{ username or '' }}" autocomplete="username"
+                               {% if lockout_remaining %}disabled{% endif %}>
+                        <i class="fas fa-user input-icon"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-key"></i> Password</label>
+                    <div class="input-wrapper">
+                        <input type="password" name="password" id="loginPassword"
+                               placeholder="Enter password" required autocomplete="current-password"
+                               {% if lockout_remaining %}disabled{% endif %}>
+                        <i class="fas fa-lock input-icon"></i>
+                        <button type="button" class="toggle-btn" onclick="togglePassword()">
+                            <i class="fas fa-eye" id="toggleIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" name="remember" value="1">
+                        Remember me
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-login" {% if lockout_remaining %}disabled{% endif %}>
+                    <i class="fas fa-sign-in-alt"></i>
+                    Sign In
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <p>Aeroponic Snapshot Database &copy; 2026 — CoE WU</p>
+            </div>
+        </div>
+    </div>
+
+<script>
+function togglePassword() {
+    var inp = document.getElementById('loginPassword');
+    var icon = document.getElementById('toggleIcon');
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        inp.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+
+function toggleTheme() {
+    var html = document.documentElement;
+    var current = html.getAttribute('data-theme');
+    var next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+}
+
+/* Lockout countdown */
+var _lockoutEl = document.getElementById('lockoutTimer');
+if (_lockoutEl) {
+    (function() {
+        var remaining = parseInt(_lockoutEl.textContent, 10) || 0;
+        if (remaining > 0) {
+            var interval = setInterval(function() {
+                remaining--;
+                _lockoutEl.textContent = remaining;
+                if (remaining <= 0) {
+                    clearInterval(interval);
+                    location.reload();
+                }
+            }, 1000);
+        }
+    })();
+}
+</script>
+</body>
+</html>

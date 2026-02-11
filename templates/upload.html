@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block page_title %}Upload Snapshot{% endblock %}
+
+{% block content %}
+<div class="help-box">
+    <h3><i class="fas fa-info-circle"></i> How to Upload</h3>
+    <ul>
+        <li>Drag & drop an image onto the upload area, or click to browse files</li>
+        <li>Optionally select a <strong>category</strong> and set a <strong>capture time</strong></li>
+        <li>Add <strong>tags</strong> (comma-separated) for easier searching later</li>
+        <li>The system auto-detects date/time from the filename if not specified</li>
+        <li>For bulk imports, use the <a href="/import-drive" style="color:var(--primary);font-weight:600">Import</a> page instead</li>
+    </ul>
+</div>
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <h2>Upload Snapshot</h2>
+    </div>
+    
+    <form action="/upload" method="POST" enctype="multipart/form-data" id="uploadForm">
+        <!-- Drag and Drop Zone -->
+        <div class="drop-zone" id="dropZone">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p style="font-size: 1.1rem; font-weight: 500; margin-bottom: 0.5rem;">Drag and drop file here</p>
+            <p style="color: var(--gray);">or click to select file</p>
+            <input type="file" id="file" name="file" accept="image/*" required style="display: none;">
+        </div>
+        <p id="fileName" style="text-align: center; margin: 1rem 0; color: var(--primary); font-weight: 500;"></p>
+        
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="category_id"><i class="fas fa-folder"></i> Category</label>
+                <select id="category_id" name="category_id">
+                    <option value="">-- Select Category --</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}">
+                            {% if category.parent_id %}└─ {% endif %}{{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="capture_time"><i class="fas fa-clock"></i> Capture Time</label>
+                <input type="datetime-local" id="capture_time" name="capture_time">
+                <p class="helper-text">Leave empty to auto-detect from filename</p>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="tags"><i class="fas fa-tags"></i> Tags</label>
+            <input type="text" id="tags" name="tags" placeholder="e.g., roots, leaves, healthy (comma separated)">
+        </div>
+        
+        <div class="form-group">
+            <label for="notes"><i class="fas fa-sticky-note"></i> Notes</label>
+            <textarea id="notes" name="notes" rows="3" placeholder="Add any observations or notes..."></textarea>
+        </div>
+        
+        <input type="hidden" id="source" name="source" value="Manual Upload">
+        
+        <button type="submit" id="submitBtn">
+            <i class="fas fa-upload"></i> Upload Image
+        </button>
+    </form>
+</div>
+
+<div id="result" style="display: none;" class="card">
+    <div class="card-header">
+        <i class="fas fa-check-circle"></i>
+        <h2>Upload Result</h2>
+    </div>
+    <div id="resultContent"></div>
+</div>
+
+<!-- Tips -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-lightbulb"></i>
+        <h2>Tips</h2>
+    </div>
+    <ul class="feature-list">
+        <li>
+            <i class="fas fa-info-circle" style="color:var(--accent)"></i>
+            <span>Supported formats: JPG, PNG, GIF, BMP</span>
+        </li>
+        <li>
+            <i class="fas fa-info-circle" style="color:var(--accent)"></i>
+            <span>Maximum file size: 50 MB per image</span>
+        </li>
+        <li>
+            <i class="fas fa-info-circle" style="color:var(--accent)"></i>
+            <span>System will auto-detect date/time from filename</span>
+        </li>
+        <li>
+            <i class="fas fa-info-circle" style="color:var(--accent)"></i>
+            <span>For multiple uploads, use the "Import" menu</span>
+        </li>
+    </ul>
+</div>
+
+<!-- API Upload for Raspberry Pi -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-robot"></i>
+        <h2>API Upload (Raspberry Pi / Automation)</h2>
+    </div>
+    <p style="color:var(--text-secondary);margin-bottom:16px;font-size:14px">
+        For automated uploads from Raspberry Pi or other devices, use the REST API:
+    </p>
+    
+    <div style="margin-bottom:16px">
+        <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:var(--primary-light);border-radius:var(--radius);font-family:'Consolas',monospace;font-size:13px;border:1px solid rgba(99,102,241,0.15)">
+            <span style="color:var(--primary);font-weight:600">POST</span>
+            <span style="color:var(--text)">/api/upload</span>
+        </div>
+    </div>
+    
+    <p style="font-weight:600;margin-bottom:8px;font-size:13px;color:var(--text)"><i class="fas fa-terminal"></i> Example with cURL:</p>
+    <pre style="white-space:pre-wrap;word-break:break-all;overflow-x:auto;max-width:100%">curl -X POST http://your-server:5000/api/upload \
+  -F "file=@snapshot.jpg" \
+  -F "api_key=your-api-key" \
+  -F "camera_id=cam1" \
+  -F "project_name=Aeroponic System 1"</pre>
+    
+    <div style="margin-top:16px">
+        <p style="font-weight:600;margin-bottom:8px;font-size:13px;color:var(--text)"><i class="fas fa-clock"></i> Crontab Example (every 30 minutes):</p>
+        <pre style="white-space:pre-wrap;word-break:break-all;overflow-x:auto;max-width:100%">*/30 * * * * /usr/bin/python3 /home/pi/upload_snapshot.py --capture >> /home/pi/upload.log 2>&1</pre>
+    </div>
+    
+    <div class="help-box" style="margin-top:16px;margin-bottom:0">
+        <i class="fas fa-info-circle" style="color:var(--primary)"></i>
+        Ready-to-use Python and Bash scripts available in <code>raspberry_pi_scripts/</code> folder
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('file');
+const fileName = document.getElementById('fileName');
+
+// Click to select file
+dropZone.addEventListener('click', () => fileInput.click());
+
+// Drag and drop events
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+});
+
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    
+    if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        updateFileName();
+    }
+});
+
+fileInput.addEventListener('change', updateFileName);
+
+function updateFileName() {
+    if (fileInput.files.length) {
+        fileName.innerHTML = '<i class="fas fa-check-circle"></i> ' + fileInput.files[0].name;
+    }
+}
+
+// Form submission
+document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const button = document.getElementById('submitBtn');
+    const originalText = button.innerHTML;
+    
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner"></span> Uploading...';
+    
+    try {
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        const resultDiv = document.getElementById('result');
+        const resultContent = document.getElementById('resultContent');
+        
+        if (result.success) {
+            resultContent.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <div>
+                        <strong>Upload Successful!</strong><br>
+                        Filename: ${result.filename}<br>
+                        Capture Time: ${result.capture_time}
+                    </div>
+                </div>
+                <a href="/query" class="btn" style="margin-top: 1rem;">
+                    <i class="fas fa-search"></i> View All Images
+                </a>
+            `;
+            this.reset();
+            fileName.textContent = '';
+        } else {
+            resultContent.innerHTML = `
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <strong>Error:</strong> ${result.error}
+                </div>
+            `;
+        }
+        
+        resultDiv.style.display = 'block';
+        resultDiv.scrollIntoView({ behavior: 'smooth' });
+        
+    } catch (error) {
+        document.getElementById('resultContent').innerHTML = `
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <strong>Error:</strong> ${error.message}
+            </div>
+        `;
+        document.getElementById('result').style.display = 'block';
+    } finally {
+        button.disabled = false;
+        button.innerHTML = originalText;
+    }
+});
+</script>
+{% endblock %}

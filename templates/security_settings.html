@@ -1,0 +1,1203 @@
+{% extends "base.html" %}
+
+{% block title %}Security Settings — Aeroponic Snapshot Database{% endblock %}
+{% block page_title %}Security Settings{% endblock %}
+
+{% block extra_styles %}
+/* ===== Security Settings Page ===== */
+.security-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+.security-grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.setting-row:last-child {
+    border-bottom: none;
+}
+
+.setting-info {
+    flex: 1;
+}
+
+.setting-info h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-bottom: 2px;
+}
+
+.setting-info p {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    width: 48px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: var(--gray-300);
+    border-radius: 26px;
+    transition: 0.3s;
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: var(--primary);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(22px);
+}
+
+/* User Table */
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.user-table th,
+.user-table td {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.user-table th {
+    background: var(--table-header-bg);
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.user-table tr:hover td {
+    background: var(--table-hover);
+}
+
+.user-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+
+.user-status.active {
+    background: var(--success-light);
+    color: var(--success);
+}
+
+.user-status.inactive {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+.role-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.role-badge.admin {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.role-badge.editor {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.role-badge.viewer {
+    background: var(--secondary-light);
+    color: var(--text-secondary);
+}
+
+.role-badge.user {
+    background: var(--secondary-light);
+    color: var(--text-secondary);
+}
+
+/* History List */
+.history-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 13px;
+}
+
+.history-icon.success {
+    background: var(--success-light);
+    color: var(--success);
+}
+
+.history-icon.fail {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+.history-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.history-details strong {
+    color: var(--text-heading);
+}
+
+.history-details small {
+    display: block;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.history-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* Session Cards */
+.session-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+}
+
+.session-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.session-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+}
+
+.session-details h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-heading);
+}
+
+.session-details small {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* Modal */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--modal-overlay);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.show {
+    display: flex;
+}
+
+.modal-box {
+    background: var(--modal-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 32px;
+    width: 90%;
+    max-width: 460px;
+    animation: scaleIn 0.3s ease;
+}
+
+.modal-box h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-box h3 i {
+    color: var(--primary);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.password-strength {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--gray-200);
+    margin-top: 6px;
+    overflow: hidden;
+}
+
+.password-strength-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: all 0.3s;
+    width: 0;
+}
+
+.strength-text {
+    font-size: 11px;
+    margin-top: 3px;
+    color: var(--text-muted);
+}
+
+/* Tab navigation */
+.security-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 4px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+}
+
+.security-tab {
+    padding: 10px 18px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border: none;
+    background: none;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: auto;
+}
+
+.security-tab:hover {
+    background: var(--hover-overlay);
+    color: var(--text);
+    box-shadow: none;
+    transform: none;
+}
+
+.security-tab.active {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 8px var(--primary-glow);
+}
+
+.security-tab.active:hover {
+    background: var(--primary-dark);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+    animation: fadeInUp 0.3s ease;
+}
+
+.inline-number {
+    width: 80px !important;
+    display: inline-block;
+    text-align: center;
+    padding: 6px 10px !important;
+    font-size: 14px !important;
+}
+
+@media (max-width: 768px) {
+    .security-grid-2col {
+        grid-template-columns: 1fr;
+    }
+
+    .security-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .setting-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .modal-box {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 640px) {
+    .security-tabs button {
+        padding: 10px 14px;
+        font-size: 12px;
+        min-width: max-content;
+    }
+
+    .security-tabs button i {
+        margin-right: 4px;
+    }
+
+    .hero-banner {
+        padding: 16px;
+    }
+
+    .hero-banner h1 {
+        font-size: 1.2rem;
+    }
+
+    .hero-banner p {
+        font-size: 0.85rem;
+    }
+
+    .user-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .user-table th,
+    .user-table td {
+        padding: 10px 12px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .modal-box {
+        padding: 16px;
+        width: calc(100vw - 32px);
+        max-width: 100%;
+    }
+
+    .toggle-switch {
+        width: 44px;
+        height: 24px;
+    }
+
+    .toggle-slider::before {
+        height: 18px;
+        width: 18px;
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+        transform: translateX(20px);
+    }
+}
+
+@media (max-width: 480px) {
+    .setting-info h4 {
+        font-size: 13px;
+    }
+
+    .setting-info p {
+        font-size: 11px;
+    }
+
+    .inline-number {
+        width: 60px !important;
+    }
+}
+
+/* === Permissions Tab === */
+.perm-user-select {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.perm-user-select select {
+    flex: 1;
+    min-width: 200px;
+    max-width: 350px;
+}
+.perm-group {
+    margin-bottom: 20px;
+}
+.perm-group-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-heading);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.perm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 8px;
+}
+.perm-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.perm-item:hover {
+    border-color: var(--primary);
+    background: var(--hover-overlay);
+}
+.perm-item.checked {
+    border-color: var(--primary);
+    background: var(--primary-light);
+}
+.perm-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+.perm-item label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    flex: 1;
+}
+.perm-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+.role-select-inline {
+    padding: 4px 8px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+}
+.btn-edit-perms {
+    padding: 4px 8px;
+    font-size: 11px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-edit-perms:hover {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+.perm-status-msg {
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    margin-bottom: 12px;
+    display: none;
+}
+.perm-status-msg.success {
+    display: block;
+    background: var(--success-light);
+    color: var(--success);
+}
+.perm-status-msg.error {
+    display: block;
+    background: var(--danger-light);
+    color: var(--danger);
+}
+{% endblock %}
+
+{% block content %}
+<!-- Hero Banner -->
+<div class="hero-banner">
+    <div style="display:flex;align-items:center;gap:16px">
+        <div class="hero-icon"><i class="fas fa-shield-alt" style="font-size:24px;color:var(--hero-text)"></i></div>
+        <div>
+            <h1 class="hero-title">Security Settings</h1>
+            <p class="hero-sub">Manage users, passwords, sessions, and security configurations</p>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="security-tabs">
+    <button class="security-tab active" onclick="switchTab('general')"><i class="fas fa-cog"></i> General</button>
+    <button class="security-tab" onclick="switchTab('users')"><i class="fas fa-users"></i> Users</button>
+    <button class="security-tab" onclick="switchTab('password')"><i class="fas fa-key"></i> Change Password</button>
+    <button class="security-tab" onclick="switchTab('sessions')"><i class="fas fa-desktop"></i> Sessions</button>
+    <button class="security-tab" onclick="switchTab('permissions')"><i class="fas fa-user-shield"></i> Permissions</button>
+    <button class="security-tab" onclick="switchTab('history')"><i class="fas fa-history"></i> Login History</button>
+</div>
+
+<!-- ============================================================ -->
+<!-- TAB: General Settings -->
+<!-- ============================================================ -->
+<div class="tab-content active" id="tab-general">
+    <form method="POST" action="{{ url_for('security_update_settings') }}">
+        <div class="security-grid-2col">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-lock"></i>
+                    <h2>Access Control</h2>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h4>Require Login</h4>
+                        <p>When enabled, users must sign in before accessing the system</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" name="require_login" value="1"
+                               {% if settings.require_login %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h4>Session Timeout (minutes)</h4>
+                        <p>Duration of inactivity before automatic logout</p>
+                    </div>
+                    <input type="number" name="session_timeout_minutes" class="inline-number"
+                           value="{{ settings.session_timeout_minutes or 60 }}" min="5" max="1440">
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h4>Log Login Activity</h4>
+                        <p>Record successful and failed login attempts</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" name="log_login_activity" value="1"
+                               {% if settings.log_login_activity %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-shield-alt"></i>
+                    <h2>Attack Prevention</h2>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h4>Max Failed Login Attempts</h4>
+                        <p>Number of failed attempts before account lockout</p>
+                    </div>
+                    <input type="number" name="max_login_attempts" class="inline-number"
+                           value="{{ settings.max_login_attempts or 5 }}" min="3" max="20">
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h4>Lockout Duration (minutes)</h4>
+                        <p>How long the account stays locked after exceeding attempts</p>
+                    </div>
+                    <input type="number" name="lockout_duration_minutes" class="inline-number"
+                           value="{{ settings.lockout_duration_minutes or 15 }}" min="1" max="60">
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h4>Minimum Password Length</h4>
+                        <p>Minimum number of characters required for passwords</p>
+                    </div>
+                    <input type="number" name="password_min_length" class="inline-number"
+                           value="{{ settings.password_min_length or 8 }}" min="4" max="32">
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h4>Enforce Strong Password</h4>
+                        <p>Require uppercase, lowercase, and numbers</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" name="enforce_strong_password" value="1"
+                               {% if settings.enforce_strong_password %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align:right;margin-top:16px">
+            <button type="submit" class="btn"><i class="fas fa-save"></i> Save Settings</button>
+        </div>
+    </form>
+</div>
+
+<!-- ============================================================ -->
+<!-- TAB: User Management -->
+<!-- ============================================================ -->
+<div class="tab-content" id="tab-users">
+    <div class="card">
+        <div class="card-header" style="justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:12px">
+                <i class="fas fa-users"></i>
+                <h2>User List</h2>
+            </div>
+            <button class="btn btn-sm" onclick="showModal('addUserModal')"><i class="fas fa-plus"></i> Add User</button>
+        </div>
+
+        <div class="table-container">
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Last Login</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <strong>{{ user.display_name }}</strong>
+                            <br><small style="color:var(--text-muted)">@{{ user.username }}</small>
+                        </td>
+                        <td><span class="role-badge {{ user.role }}">{{ user.role }}</span>
+                            {% if user.username != current_user.username %}
+                            <form method="POST" action="{{ url_for('security_update_role') }}" style="margin:4px 0 0;display:inline-flex;gap:4px;align-items:center">
+                                <input type="hidden" name="username" value="{{ user.username }}">
+                                <select name="role" class="role-select-inline" onchange="this.form.submit()">
+                                    <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                                    <option value="editor" {% if user.role == 'editor' %}selected{% endif %}>Editor</option>
+                                    <option value="viewer" {% if user.role == 'viewer' %}selected{% endif %}>Viewer</option>
+                                </select>
+                            </form>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="user-status {% if user.is_active %}active{% else %}inactive{% endif %}">
+                                <i class="fas fa-circle" style="font-size:7px"></i>
+                                {{ 'Active' if user.is_active else 'Inactive' }}
+                            </span>
+                        </td>
+                        <td style="font-size:12px;color:var(--text-muted)">
+                            {{ user.last_login[:16] if user.last_login else 'Never' }}
+                        </td>
+                        <td style="font-size:12px;color:var(--text-muted)">
+                            {{ user.created_at[:10] if user.created_at else '-' }}
+                        </td>
+                        <td>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                                {% if user.username != current_user.username and user.role != 'admin' %}
+                                <button type="button" class="btn-edit-perms" onclick="editPermissions('{{ user.username }}')" title="Edit permissions">
+                                    <i class="fas fa-user-shield"></i> Perms
+                                </button>
+                                {% endif %}
+                                <form method="POST" action="{{ url_for('security_toggle_user') }}" style="margin:0">
+                                    <input type="hidden" name="username" value="{{ user.username }}">
+                                    <button type="submit" class="btn btn-sm btn-secondary" title="{{ 'Deactivate' if user.is_active else 'Activate' }}">
+                                        <i class="fas {{ 'fa-ban' if user.is_active else 'fa-check' }}"></i>
+                                    </button>
+                                </form>
+                                {% if user.username != current_user.username %}
+                                <form method="POST" action="{{ url_for('security_delete_user') }}" style="margin:0"
+                                      onsubmit="return confirm('Delete user {{ user.username }}?')">
+                                    <input type="hidden" name="username" value="{{ user.username }}">
+                                    <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- TAB: Change Password -->
+<!-- ============================================================ -->
+<div class="tab-content" id="tab-password">
+    <div class="card" style="max-width:500px">
+        <div class="card-header">
+            <i class="fas fa-key"></i>
+            <h2>Change Password</h2>
+        </div>
+
+        <form method="POST" action="{{ url_for('security_change_password') }}">
+            <div class="form-group">
+                <label><i class="fas fa-lock" style="color:var(--primary)"></i> Current Password</label>
+                <input type="password" name="current_password" required autocomplete="current-password">
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-key" style="color:var(--primary)"></i> New Password</label>
+                <input type="password" name="new_password" id="newPassword" required
+                       autocomplete="new-password" oninput="checkStrength(this.value)">
+                <div class="password-strength">
+                    <div class="password-strength-bar" id="strengthBar"></div>
+                </div>
+                <div class="strength-text" id="strengthText"></div>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-check-double" style="color:var(--primary)"></i> Confirm New Password</label>
+                <input type="password" name="confirm_password" required autocomplete="new-password">
+            </div>
+
+            <button type="submit" class="btn"><i class="fas fa-save"></i> Change Password</button>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- TAB: Sessions -->
+<!-- ============================================================ -->
+<div class="tab-content" id="tab-sessions">
+    <div class="card">
+        <div class="card-header" style="justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:12px">
+                <i class="fas fa-desktop"></i>
+                <h2>Active Sessions</h2>
+            </div>
+            <form method="POST" action="{{ url_for('security_clear_sessions') }}" style="margin:0"
+                  onsubmit="return confirm('Clear all sessions? (You will also be logged out)')">
+                <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Clear All</button>
+            </form>
+        </div>
+
+        {% if sessions %}
+            {% for s in sessions %}
+            <div class="session-card">
+                <div class="session-info">
+                    <div class="session-avatar"><i class="fas fa-user"></i></div>
+                    <div class="session-details">
+                        <h4>{{ s.user }} <span style="color:var(--text-muted);font-weight:400;font-size:11px">({{ s.session_id }})</span></h4>
+                        <small>IP: {{ s.ip }} &bull; {{ s.last_active[:16] if s.last_active else '' }}</small>
+                    </div>
+                </div>
+                <form method="POST" action="{{ url_for('security_revoke_session') }}" style="margin:0">
+                    <input type="hidden" name="session_id" value="{{ s.full_id }}">
+                    <button type="submit" class="btn btn-sm btn-secondary"><i class="fas fa-times"></i> Revoke</button>
+                </form>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state" style="padding:32px">
+                <i class="fas fa-desktop"></i>
+                <h3>No active sessions</h3>
+                <p>No users are currently logged in</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- TAB: Permissions -->
+<!-- ============================================================ -->
+<div class="tab-content" id="tab-permissions">
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-user-shield"></i>
+            <h2>User Permissions</h2>
+        </div>
+
+        <div id="permStatusMsg" class="perm-status-msg"></div>
+
+        <div class="perm-user-select">
+            <label style="font-weight:600;font-size:13px;white-space:nowrap">Select User:</label>
+            <select id="permUserSelect" onchange="loadPermissions(this.value)">
+                <option value="">— Choose a user —</option>
+                {% for user in users %}
+                {% if user.role != 'admin' %}
+                <option value="{{ user.username }}">{{ user.display_name }} (@{{ user.username }}) — {{ user.role }}</option>
+                {% endif %}
+                {% endfor %}
+            </select>
+        </div>
+
+        <div id="permEditor" style="display:none">
+            <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px">
+                <i class="fas fa-info-circle"></i>
+                Check/uncheck permissions for this user. Admin users always have full access and cannot be edited here.
+            </p>
+
+            {% for group_name, group_perms in permission_groups.items() %}
+            <div class="perm-group">
+                <div class="perm-group-title">
+                    {% if group_name == 'Snapshots' %}<i class="fas fa-camera"></i>
+                    {% elif group_name == 'Organization' %}<i class="fas fa-folder"></i>
+                    {% elif group_name == 'Videos' %}<i class="fas fa-video"></i>
+                    {% elif group_name == 'System' %}<i class="fas fa-cogs"></i>
+                    {% endif %}
+                    {{ group_name }}
+                </div>
+                <div class="perm-grid">
+                    {% for perm in group_perms %}
+                    {% if perm != 'security' %}
+                    <div class="perm-item" onclick="togglePermCheckbox('perm_{{ perm }}')">
+                        <input type="checkbox" id="perm_{{ perm }}" data-perm="{{ perm }}">
+                        <label for="perm_{{ perm }}">{{ permission_labels.get(perm, perm) }}</label>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="perm-actions">
+                <button class="btn" onclick="savePermissions()"><i class="fas fa-save"></i> Save Permissions</button>
+                <button class="btn btn-secondary" onclick="resetToRoleDefaults()"><i class="fas fa-undo"></i> Reset to Role Defaults</button>
+            </div>
+        </div>
+
+        <div id="permEmpty" style="padding:32px;text-align:center">
+            <div class="empty-state">
+                <i class="fas fa-user-shield" style="font-size:32px;color:var(--text-muted);margin-bottom:12px"></i>
+                <h3>Select a user above</h3>
+                <p style="color:var(--text-muted)">Choose a non-admin user to manage their page and action permissions</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- TAB: Login History -->
+<!-- ============================================================ -->
+<div class="tab-content" id="tab-history">
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-history"></i>
+            <h2>Login History</h2>
+        </div>
+
+        {% if history %}
+        <div class="history-list">
+            {% for item in history %}
+            <div class="history-item">
+                <div class="history-icon {{ 'success' if item.success else 'fail' }}">
+                    <i class="fas {{ 'fa-check' if item.success else 'fa-times' }}"></i>
+                </div>
+                <div class="history-details">
+                    <strong>{{ item.user }}</strong>
+                    — {{ 'Login successful' if item.success else 'Login failed' }}
+                    <small>IP: {{ item.ip }}{% if item.user_agent %} &bull; {{ item.user_agent[:60] }}{% endif %}</small>
+                </div>
+                <div class="history-time">{{ item.time[:16] }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state" style="padding:32px">
+            <i class="fas fa-history"></i>
+            <h3>No history</h3>
+            <p>No login activity has been recorded yet</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Modal: Add User -->
+<!-- ============================================================ -->
+<div class="modal-overlay" id="addUserModal">
+    <div class="modal-box">
+        <h3><i class="fas fa-user-plus"></i> Add New User</h3>
+        <form method="POST" action="{{ url_for('security_add_user') }}">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" required pattern="[a-zA-Z0-9_]{3,20}"
+                       placeholder="3-20 alphanumeric characters">
+            </div>
+            <div class="form-group">
+                <label>Display Name</label>
+                <input type="text" name="display_name" placeholder="Full name (optional)">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" required minlength="4" autocomplete="new-password">
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select name="role" id="addUserRole">
+                    <option value="viewer">Viewer — Read-only access</option>
+                    <option value="editor" selected>Editor — Can upload &amp; edit</option>
+                    <option value="admin">Admin — Full access</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="hideModal('addUserModal')">Cancel</button>
+                <button type="submit" class="btn"><i class="fas fa-plus"></i> Create User</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* Tab Switching */
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.security-tab').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.target.closest('.security-tab').classList.add('active');
+}
+
+/* Modal */
+function showModal(id) {
+    document.getElementById(id).classList.add('show');
+}
+function hideModal(id) {
+    document.getElementById(id).classList.remove('show');
+}
+document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', function(e) {
+        if (e.target === this) hideModal(this.id);
+    });
+});
+
+/* Password Strength */
+function checkStrength(pw) {
+    var bar = document.getElementById('strengthBar');
+    var text = document.getElementById('strengthText');
+    var score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[a-z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+    var pct = Math.min(100, (score / 6) * 100);
+    var color, label;
+    if (pct <= 33) { color = 'var(--danger)'; label = 'Weak'; }
+    else if (pct <= 66) { color = 'var(--warning)'; label = 'Medium'; }
+    else { color = 'var(--success)'; label = 'Strong'; }
+
+    bar.style.width = pct + '%';
+    bar.style.background = color;
+    text.textContent = pw.length > 0 ? 'Strength: ' + label : '';
+    text.style.color = color;
+}
+
+/* ============================================================ */
+/* Permissions Management */
+/* ============================================================ */
+var currentPermUser = '';
+var roleDefaults = {{ role_defaults | tojson }};
+
+function showPermMsg(msg, type) {
+    var el = document.getElementById('permStatusMsg');
+    el.textContent = msg;
+    el.className = 'perm-status-msg ' + type;
+    setTimeout(function() { el.className = 'perm-status-msg'; }, 4000);
+}
+
+function togglePermCheckbox(id) {
+    var cb = document.getElementById(id);
+    if (cb) {
+        cb.checked = !cb.checked;
+        updatePermItemStyle(cb);
+    }
+}
+
+function updatePermItemStyle(cb) {
+    var item = cb.closest('.perm-item');
+    if (item) {
+        if (cb.checked) item.classList.add('checked');
+        else item.classList.remove('checked');
+    }
+}
+
+function loadPermissions(username) {
+    if (!username) {
+        document.getElementById('permEditor').style.display = 'none';
+        document.getElementById('permEmpty').style.display = 'block';
+        return;
+    }
+    currentPermUser = username;
+    fetch('/security/get-user-permissions/' + username)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                showPermMsg(data.error || 'Error loading permissions', 'error');
+                return;
+            }
+            var perms = data.permissions;
+            // Uncheck all first
+            document.querySelectorAll('#permEditor input[type=checkbox]').forEach(cb => {
+                cb.checked = false;
+                updatePermItemStyle(cb);
+            });
+            // Check user's permissions
+            perms.forEach(function(p) {
+                var cb = document.getElementById('perm_' + p);
+                if (cb) {
+                    cb.checked = true;
+                    updatePermItemStyle(cb);
+                }
+            });
+            document.getElementById('permEditor').style.display = 'block';
+            document.getElementById('permEmpty').style.display = 'none';
+        })
+        .catch(err => showPermMsg('Network error', 'error'));
+}
+
+function savePermissions() {
+    if (!currentPermUser) return;
+    var perms = [];
+    document.querySelectorAll('#permEditor input[type=checkbox]:checked').forEach(cb => {
+        perms.push(cb.dataset.perm);
+    });
+    fetch('/security/update-permissions', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username: currentPermUser, permissions: perms})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showPermMsg('Permissions saved for ' + currentPermUser, 'success');
+        } else {
+            showPermMsg(data.error || 'Save failed', 'error');
+        }
+    })
+    .catch(err => showPermMsg('Network error', 'error'));
+}
+
+function resetToRoleDefaults() {
+    if (!currentPermUser) return;
+    // Find the user's role from the select option text
+    var sel = document.getElementById('permUserSelect');
+    var opt = sel.options[sel.selectedIndex];
+    var txt = opt.textContent;
+    var role = 'viewer';
+    if (txt.includes('editor')) role = 'editor';
+    else if (txt.includes('viewer')) role = 'viewer';
+
+    var defaults = roleDefaults[role] || roleDefaults['viewer'];
+    document.querySelectorAll('#permEditor input[type=checkbox]').forEach(cb => {
+        cb.checked = defaults.includes(cb.dataset.perm);
+        updatePermItemStyle(cb);
+    });
+    showPermMsg('Reset to ' + role + ' defaults (not saved yet)', 'success');
+}
+
+function editPermissions(username) {
+    // Switch to the Permissions tab and select the user
+    switchTabDirect('permissions');
+    var sel = document.getElementById('permUserSelect');
+    sel.value = username;
+    loadPermissions(username);
+}
+
+function switchTabDirect(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.security-tab').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    document.querySelectorAll('.security-tab').forEach(el => {
+        if (el.textContent.trim().toLowerCase().includes(tab.replace('_', ' '))) {
+            el.classList.add('active');
+        }
+    });
+}
+</script>
+{% endblock %}

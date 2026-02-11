@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block page_title %}Import from Folder{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-file-import"></i>
+        <h2>Import from Folder</h2>
+    </div>
+    <p style="color: var(--gray); margin-bottom: 1.5rem;">Import multiple snapshots from a local folder</p>
+    
+    <form method="POST" id="importForm">
+        <div class="form-group">
+            <label for="folder_path"><i class="fas fa-folder-open"></i> Folder Path</label>
+            <input type="text" id="folder_path" name="folder_path" 
+                   placeholder="C:\Users\YourName\Pictures\CCU-2nd" required>
+            <p class="helper-text">Enter the full path to the folder containing images</p>
+        </div>
+        
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="source_name"><i class="fas fa-tag"></i> Source Name</label>
+                <input type="text" id="source_name" name="source_name" value="Folder Import">
+                <p class="helper-text">Used to identify where images came from</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="category_id"><i class="fas fa-folder"></i> Category (Optional)</label>
+                <select id="category_id" name="category_id">
+                    <option value="">-- None --</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}">
+                            {% if category.parent_id %}└─ {% endif %}{{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <!-- Smart Detection Checkbox -->
+        <div style="padding:16px;border-radius:var(--radius-lg);margin-bottom:12px;border:1px solid rgba(34,197,94,0.15);background:var(--success-light)">
+            <label class="checkbox-wrapper" style="font-weight:600;margin-bottom:8px">
+                <input type="checkbox" name="smart_detect" checked>
+                <span><i class="fas fa-brain" style="color:var(--success)"></i> Smart Detection</span>
+            </label>
+            <p style="font-size:12px;color:var(--text-muted);margin-left:28px;line-height:1.6">
+                Auto-detect project &amp; camera names from folder structure<br>
+                <span style="color:var(--text-muted)">e.g. <code>CCU-2nd/cam1/image.jpg</code> → Project: CCU-2nd, Camera: cam1</span>
+            </p>
+        </div>
+        
+        <!-- Date Folder Parsing Checkbox -->
+        <div style="padding:16px;border-radius:var(--radius-lg);margin-bottom:16px;border:1px solid rgba(99,102,241,0.15);background:var(--primary-light)">
+            <label class="checkbox-wrapper" style="font-weight:600;margin-bottom:8px">
+                <input type="checkbox" name="parse_date_folders" checked>
+                <span><i class="fas fa-calendar-alt" style="color:var(--primary)"></i> Parse Date Folders</span>
+            </label>
+            <p style="font-size:12px;color:var(--text-muted);margin-left:28px;line-height:1.6">
+                Support <code>[n]_MM-DD</code> folder structure (Raspberry Pi style)<br>
+                <span style="color:var(--text-muted)">e.g. <code>cam1/1_01-15/image.jpg</code> → Camera: cam1, Date: Jan 15</span>
+            </p>
+        </div>
+        
+        <button type="submit" id="submitBtn">
+            <i class="fas fa-download"></i> Start Import
+        </button>
+    </form>
+</div>
+
+<!-- Folder Structure Guide -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-sitemap"></i>
+        <h2>Supported Folder Structures</h2>
+    </div>
+    <p style="color: var(--gray-600); margin-bottom: 16px; font-size: 14px;">
+        The system supports multiple folder structures for automatic detection:
+    </p>
+    
+    <!-- Structure 1 -->
+    <div style="margin-bottom: 16px; padding: 16px; background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border);">
+        <h4 style="color: var(--primary); margin-bottom: 10px; font-size: 14px;"><i class="fas fa-folder"></i> Structure 1: Project / Camera</h4>
+        <pre style="line-height:1.8;overflow-x:auto;margin:0;white-space:pre-wrap;word-break:break-word;max-width:100%">Main Folder/
+├── CCU-2nd/            ← <span style="color:var(--primary);font-weight:600">Project name</span>
+│   ├── cam1/           ← <span style="color:var(--success);font-weight:600">Camera name</span>
+│   │   ├── image_001.jpg
+│   │   └── image_002.jpg
+│   └── cam2/
+│       └── image_001.jpg
+└── YunLinFarm-1st/     ← <span style="color:var(--primary);font-weight:600">Another project</span>
+    └── cam1/</pre>
+    </div>
+    
+    <!-- Structure 2 -->
+    <div style="margin-bottom: 16px; padding: 16px; background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border);">
+        <h4 style="color: var(--primary); margin-bottom: 6px; font-size: 14px;"><i class="fas fa-calendar-alt"></i> Structure 2: Camera / Date (Raspberry Pi)</h4>
+        <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 10px;">Format: <code>[sequence]_[MM-DD]</code></p>
+        <pre style="line-height:1.8;overflow-x:auto;margin:0;white-space:pre-wrap;word-break:break-word;max-width:100%">Main Folder/
+├── cam1/               ← <span style="color:var(--success);font-weight:600">Camera 1</span>
+│   ├── 1_01-15/        ← <span style="color:var(--warning);font-weight:600">Batch 1, Jan 15</span>
+│   │   ├── snapshot_0800.jpg
+│   │   └── snapshot_1200.jpg
+│   ├── 2_01-16/        ← <span style="color:var(--warning);font-weight:600">Batch 2, Jan 16</span>
+│   └── 3_01-17/
+├── cam2/
+└── cam3/</pre>
+    </div>
+    
+    <div class="help-box" style="margin-bottom: 0;">
+        <i class="fas fa-check-circle" style="color:var(--success)"></i>
+        <strong>Both structures are supported!</strong> The system auto-detects your folder layout.
+    </div>
+</div>
+
+{% if imported_count is defined %}
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-check-circle"></i>
+        <h2>Import Results</h2>
+    </div>
+    
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle"></i>
+        <div>
+            <strong>Import Successful!</strong><br>
+            Imported {{ imported_count }} images
+        </div>
+    </div>
+    
+    {% if errors %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div>
+            <strong>Found {{ errors|length }} errors:</strong>
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                {% for error in errors[:5] %}
+                <li>{{ error }}</li>
+                {% endfor %}
+                {% if errors|length > 5 %}
+                <li>...and {{ errors|length - 5 }} more</li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div style="margin-top: 1rem;">
+        <a href="/query" class="btn">
+            <i class="fas fa-search"></i> View All Images
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Instructions -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-info-circle"></i>
+        <h2>How to Use</h2>
+    </div>
+    <ol style="padding-left: 1.5rem; line-height: 2;">
+        <li>Prepare a folder containing the images you want to import</li>
+        <li>Copy the folder path (e.g., C:\Pictures\CCU-2nd)</li>
+        <li>Paste the path in the field above and click "Start Import"</li>
+        <li>The system will:
+            <ul style="margin-left: 1.5rem; list-style-type: disc;">
+                <li>Scan the folder and all subfolders</li>
+                <li>Import image files (JPG, PNG, GIF, BMP)</li>
+                <li>Auto-detect date/time from filename</li>
+                <li><strong>Detect project and camera names from folder structure</strong></li>
+                <li>Store in database</li>
+            </ul>
+        </li>
+    </ol>
+</div>
+
+<!-- Tips -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-lightbulb"></i>
+        <h2>Tips</h2>
+    </div>
+    <ul class="feature-list">
+        <li>
+            <i class="fas fa-brain" style="color: var(--primary);"></i>
+            <span><strong>Enable Smart Detection</strong> to automatically separate images from different cameras</span>
+        </li>
+        <li>
+            <i class="fas fa-info-circle" style="color: var(--secondary);"></i>
+            <span>Multiple imports supported - duplicate images are handled automatically</span>
+        </li>
+        <li>
+            <i class="fas fa-info-circle" style="color: var(--secondary);"></i>
+            <span>Original files will not be moved or deleted</span>
+        </li>
+        <li>
+            <i class="fas fa-info-circle" style="color: var(--secondary);"></i>
+            <span>Large imports may take several minutes</span>
+        </li>
+        <li>
+            <i class="fas fa-info-circle" style="color: var(--secondary);"></i>
+            <span>You can import from synced Google Drive folders</span>
+        </li>
+    </ul>
+</div>
+
+<style>
+/* Mobile Responsive for Import Drive */
+@media (max-width: 640px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    input[type="text"],
+    select {
+        font-size: 16px;
+    }
+    
+    pre {
+        font-size: 11px;
+        padding: 12px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    code {
+        font-size: 11px;
+        word-break: break-all;
+    }
+    
+    #submitBtn {
+        width: 100%;
+        padding: 16px;
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    pre {
+        font-size: 10px;
+        line-height: 1.6;
+    }
+    
+    .feature-list li span {
+        font-size: 13px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('importForm').addEventListener('submit', function() {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Importing... (this may take a while)';
+});
+</script>
+{% endblock %}
