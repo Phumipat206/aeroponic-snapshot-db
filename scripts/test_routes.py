@@ -8,9 +8,9 @@ from src.app import app
 
 app.config['TESTING'] = True
 
-routes = ['/', '/upload', '/query', '/daily', '/categories', '/generate-video',
+routes = ['/', '/upload', '/query', '/daily-snapshots', '/categories', '/generate-video',
           '/videos', '/stats', '/online', '/security', '/about', '/api/upload/test',
-          '/login']
+          '/login', '/auto-sync', '/import-drive']
 
 results = []
 with app.test_client() as client:
