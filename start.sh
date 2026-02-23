@@ -111,29 +111,54 @@ fi
 
 # ── 6. cloudflared (download if missing) ─────────────────────────────
 echo "[6/7] Checking cloudflared tunnel binary..."
-if [ ! -f "src/cloudflared" ]; then
+if [ ! -f "src/cloudflared" ] || [ ! -s "src/cloudflared" ]; then
+    rm -f src/cloudflared 2>/dev/null  # Remove broken file if exists
     ARCH=$(uname -m)
     case "$ARCH" in
         x86_64)  CF_ARCH="amd64" ;;
         aarch64) CF_ARCH="arm64" ;;
         armv7l)  CF_ARCH="arm"   ;;
+        armv6l)  CF_ARCH="arm"   ;;
         *)       CF_ARCH="amd64" ;;
     esac
+    CF_URL="https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${CF_ARCH}"
+    echo "  Downloading cloudflared for linux-${CF_ARCH}..."
+    
+    DOWNLOAD_OK=false
     if command -v wget &>/dev/null; then
-        wget -q "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${CF_ARCH}" \
-            -O src/cloudflared 2>/dev/null && chmod +x src/cloudflared && \
-            ok "cloudflared downloaded (linux-${CF_ARCH})" || \
-            warn "Could not download cloudflared (tunnel will not work, but app runs fine)"
+        wget -q --timeout=30 "$CF_URL" -O src/cloudflared 2>/dev/null && DOWNLOAD_OK=true
     elif command -v curl &>/dev/null; then
-        curl -sL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${CF_ARCH}" \
-            -o src/cloudflared 2>/dev/null && chmod +x src/cloudflared && \
-            ok "cloudflared downloaded (linux-${CF_ARCH})" || \
-            warn "Could not download cloudflared"
+        curl -sL --connect-timeout 30 "$CF_URL" -o src/cloudflared 2>/dev/null && DOWNLOAD_OK=true
     else
-        warn "wget/curl not found — skipping cloudflared download"
+        warn "wget/curl not found — cannot download cloudflared"
+    fi
+    
+    # Verify download succeeded (file exists, >1MB, and is valid binary)
+    if [ "$DOWNLOAD_OK" = true ] && [ -s "src/cloudflared" ]; then
+        FILE_SIZE=$(stat -c%s "src/cloudflared" 2>/dev/null || stat -f%z "src/cloudflared" 2>/dev/null || echo "0")
+        if [ "$FILE_SIZE" -gt 1000000 ]; then
+            chmod +x src/cloudflared
+            ok "cloudflared downloaded (linux-${CF_ARCH}, $(($FILE_SIZE / 1024 / 1024))MB)"
+        else
+            rm -f src/cloudflared
+            warn "Downloaded file too small (may be blocked by firewall)"
+            warn "Online tunnel won't work, but app runs fine locally"
+            warn "Manual install: sudo wget -O /usr/local/bin/cloudflared $CF_URL && chmod +x /usr/local/bin/cloudflared"
+        fi
+    else
+        rm -f src/cloudflared 2>/dev/null
+        warn "Could not download cloudflared (network issue or blocked)"
+        warn "Online tunnel won't work, but app runs fine locally"
     fi
 else
-    ok "cloudflared exists"
+    # Verify existing file is valid
+    FILE_SIZE=$(stat -c%s "src/cloudflared" 2>/dev/null || stat -f%z "src/cloudflared" 2>/dev/null || echo "0")
+    if [ "$FILE_SIZE" -gt 1000000 ]; then
+        ok "cloudflared exists ($(($FILE_SIZE / 1024 / 1024))MB)"
+    else
+        rm -f src/cloudflared
+        warn "Existing cloudflared is corrupted, please re-run start.sh"
+    fi
 fi
 
 # ── 7. Database init ─────────────────────────────────────────────────

@@ -93,12 +93,20 @@ if __name__ == '__main__':
             """Wait for server to be ready then start tunnel"""
             time.sleep(3)  # Wait for Flask to fully start
             try:
-                # Start tunnel via API using urllib (built-in)
-                url = f'http://127.0.0.1:{PORT}/api/tunnel/start'
+                # Start tunnel via API — use correct protocol based on SSL setting
+                if ssl_context:
+                    import ssl as _ssl
+                    ctx = _ssl.create_default_context()
+                    ctx.check_hostname = False
+                    ctx.verify_mode = _ssl.CERT_NONE
+                    url = f'https://127.0.0.1:{PORT}/api/tunnel/start'
+                else:
+                    ctx = None
+                    url = f'http://127.0.0.1:{PORT}/api/tunnel/start'
                 req = urllib.request.Request(url, method='POST', data=b'')
                 req.add_header('Content-Type', 'application/json')
                 
-                with urllib.request.urlopen(req, timeout=90) as response:
+                with urllib.request.urlopen(req, timeout=90, context=ctx) as response:
                     data = json.loads(response.read().decode('utf-8'))
                     
                 if data.get('success') and data.get('url'):

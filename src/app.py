@@ -1764,8 +1764,13 @@ def start_tunnel():
     else:
         local_cf = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cloudflared')
     if os.path.exists(local_cf):
-        cloudflared_path = local_cf
-        logger.info(f"[TUNNEL] Found local cloudflared: {local_cf}")
+        # Verify the file is actually executable (not a broken download)
+        file_size = os.path.getsize(local_cf)
+        if file_size > 1000000:  # cloudflared binary is ~50MB, must be at least 1MB
+            cloudflared_path = local_cf
+            logger.info(f"[TUNNEL] Found local cloudflared: {local_cf} ({file_size // 1024 // 1024}MB)")
+        else:
+            logger.warning(f"[TUNNEL] Local cloudflared exists but is too small ({file_size} bytes) - likely corrupted")
     else:
         cloudflared_path = shutil.which('cloudflared')
         if cloudflared_path:
@@ -1773,17 +1778,30 @@ def start_tunnel():
 
     if not cloudflared_path:
         _tunnel_set(status='error', error='cloudflared not found. Please install it first.')
-        install_hint = ('winget install Cloudflare.cloudflared' if os.name == 'nt'
-                        else 'wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O src/cloudflared && chmod +x src/cloudflared')
+        if os.name == 'nt':
+            install_hint = 'Install via: winget install Cloudflare.cloudflared  OR download from https://github.com/cloudflare/cloudflared/releases'
+        else:
+            install_hint = 'Re-run: bash start.sh (it downloads cloudflared automatically). If blocked by firewall, install manually: sudo apt install cloudflared'
         return jsonify({
             'success': False,
-            'error': f'cloudflared not installed. Run: {install_hint}',
+            'error': f'cloudflared not found or corrupted. {install_hint}',
         })
 
     kill_cloudflared_processes()
     time.sleep(1)
 
     _tunnel_set(status='starting', error=None, url=None, last_check=None, connection_registered=False)
+
+    # Detect whether Flask is running with SSL
+    use_ssl = os.environ.get('USE_SSL', 'false').lower() in ('1', 'true', 'yes')
+    cert_exists = os.path.exists(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'certs', 'cert.pem'))
+    if use_ssl and cert_exists:
+        tunnel_target = f'https://localhost:{PORT}'
+        tunnel_cmd = [cloudflared_path, 'tunnel', '--url', tunnel_target, '--no-tls-verify']
+    else:
+        tunnel_target = f'http://localhost:{PORT}'
+        tunnel_cmd = [cloudflared_path, 'tunnel', '--url', tunnel_target]
+    logger.info(f"[TUNNEL] Target URL: {tunnel_target}")
 
     def run_tunnel():
         """Tunnel runner — uses loop instead of recursion (Fix architecture)."""
@@ -1802,7 +1820,7 @@ def start_tunnel():
                 if os.name == 'nt':
                     popen_kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW
                 process = subprocess.Popen(
-                    [cloudflared_path, 'tunnel', '--url', f'https://localhost:{PORT}', '--no-tls-verify'],
+                    tunnel_cmd,
                     **popen_kwargs,
                 )
                 _tunnel_set(process=process)

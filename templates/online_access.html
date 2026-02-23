@@ -182,8 +182,8 @@
                 <span style="width:28px;height:28px;background:var(--primary);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0">1</span>
                 <div style="flex:1">
                     <p style="font-weight:600;font-size:14px;margin-bottom:4px">Install Cloudflared</p>
-                    <pre style="background:var(--gray-50);color:var(--gray-700);padding:10px 14px;border-radius:var(--radius);font-size:13px;font-family:'Consolas',monospace;border:1px solid var(--border);margin:0;white-space:pre-wrap;word-break:break-all;max-width:100%">winget install Cloudflare.cloudflared</pre>
-                    <p style="font-size:12px;color:var(--gray-500);margin-top:4px">Or <a href="https://github.com/cloudflare/cloudflared/releases" target="_blank" style="color:var(--primary)">download from GitHub</a></p>
+                    <pre style="background:var(--gray-50);color:var(--gray-700);padding:10px 14px;border-radius:var(--radius);font-size:13px;font-family:'Consolas',monospace;border:1px solid var(--border);margin:0;white-space:pre-wrap;word-break:break-all;max-width:100%">bash start.sh  # auto-downloads cloudflared</pre>
+                    <p style="font-size:12px;color:var(--gray-500);margin-top:4px">Or manually: <code>wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O src/cloudflared && chmod +x src/cloudflared</code><br>Windows: <code>winget install Cloudflare.cloudflared</code> | <a href="https://github.com/cloudflare/cloudflared/releases" target="_blank" style="color:var(--primary)">GitHub Releases</a></p>
                 </div>
             </div>
             <div style="display:flex;align-items:flex-start;gap:12px">
@@ -1653,7 +1653,7 @@ function startTunnel() {
             startBtn.style.display = 'inline-flex';
             const errorMsg = data.error || 'Unknown error';
             if (errorMsg.includes('not installed') || errorMsg.includes('not found')) {
-                showNotification('❌ Cloudflared Not Found', 'Please install cloudflared first. Run: winget install Cloudflare.cloudflared', 'error');
+                showNotification('❌ Cloudflared Not Found', errorMsg || 'Please run: bash start.sh (it downloads cloudflared automatically)', 'error');
             } else {
                 showNotification('❌ Failed to Start Tunnel', errorMsg, 'error');
             }
