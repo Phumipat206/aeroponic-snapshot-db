@@ -1,19 +1,46 @@
 # Aeroponic Snapshot Database
 
 A snapshot management system for Aeroponic plant monitoring with time-lapse video generation.  
-Supports **Ubuntu / Debian / Raspberry Pi OS**.
+Supports **Ubuntu / Debian / Raspberry Pi OS / macOS / Windows**.
 
 ---
 
-## Quick Start (One Command)
+## Quick Start
 
+### Linux / macOS / Raspberry Pi
 ```bash
-git clone <REPO_URL>
-cd <REPO_NAME>
+git clone https://github.com/Phumipat206/aeroponic-snapshot-db.git
+cd aeroponic-snapshot-db
 bash start.sh
 ```
 
-`start.sh` performs all setup steps automatically:
+### Windows
+```cmd
+git clone https://github.com/Phumipat206/aeroponic-snapshot-db.git
+cd aeroponic-snapshot-db
+start.bat
+```
+
+Then open **https://localhost:8443** in your browser.
+
+> **Default login:** `admin` / `admin` — change the password after first login!
+
+> **Browser warning:** Click "Advanced" → "Proceed" to bypass the self-signed certificate warning.
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [User Guide](docs/USER_GUIDE.md) | Complete usage instructions |
+| [Quick Start](docs/QUICKSTART.md) | Quick setup guide |
+| [API Documentation](docs/API_DOCUMENTATION.md) | REST API reference |
+| [Project Overview](docs/PROJECT_OVERVIEW.md) | Architecture overview |
+
+---
+
+## What `start.sh` Does
 
 | Step | Description |
 |------|-------------|
@@ -24,12 +51,6 @@ bash start.sh
 | 5. SSL Certificate | Generates a self-signed RSA 4096-bit certificate (365 days) |
 | 6. Cloudflared | Downloads the tunnel binary (auto-detects CPU architecture) |
 | 7. Database | Initializes SQLite database with default categories |
-
-Once complete, open your browser at **https://localhost:8443**
-
-> **Default login:** `admin` / `admin` — please change the password after first login.
-
-> **Note:** The browser will show a "Connection not secure" warning because the certificate is self-signed. Click **Advanced → Proceed** to continue.
 
 ---
 
