@@ -64,6 +64,7 @@
                     <th style="width: 60px;">ID</th>
                     <th>Category Name</th>
                     <th>Parent</th>
+                    <th>Type</th>
                     <th>Description</th>
                     <th>Created</th>
                     <th style="width: 80px;">Delete</th>
@@ -78,6 +79,13 @@
                         {{ category.name }}
                     </td>
                     <td>{{ category.parent_id if category.parent_id else '-' }}</td>
+                    <td>
+                        {% if not category.parent_id %}
+                        <span class="badge badge-primary" style="font-size: 11px;"><i class="fas fa-folder"></i> Parent</span>
+                        {% else %}
+                        <span class="badge badge-secondary" style="font-size: 11px;"><i class="fas fa-file"></i> Sub</span>
+                        {% endif %}
+                    </td>
                     <td>{{ category.description or '-' }}</td>
                     <td>{{ category.created_at[:10] }}</td>
                     <td>

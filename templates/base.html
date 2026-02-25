@@ -205,10 +205,11 @@
         }
 
         html {
-            scroll-behavior: smooth
+            scroll-behavior: smooth;
+            height: auto;
+            overflow-y: visible
         }
 
-        html,
         body {
             width: 100%;
             max-width: 100vw;
@@ -1690,7 +1691,7 @@
 
         body {
             -webkit-overflow-scrolling: touch;
-            overscroll-behavior-y: none;
+            overscroll-behavior-x: none;
         }
 
         /* Prevent iOS zoom on input focus (font-size must be >= 16px) */
@@ -1740,7 +1741,7 @@
         }
 
         /* ===== Prevent Horizontal Overflow Globally ===== */
-        * {
+        *:not(html):not(body):not(.app-layout):not(.main-content):not(.page-content):not(.sidebar) {
             max-width: 100%;
         }
 
@@ -2006,6 +2007,14 @@
             window.scrollTo(0, parseInt(top || '0') * -1);
         }
         window.addEventListener('resize', () => { if (window.innerWidth > 768) closeSidebar() });
+
+        // Safety: ensure body scroll is never locked on page load
+        (function() {
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
+            document.body.style.top = '';
+        })();
 
         /* ===== Theme Toggle ===== */
         function toggleTheme() {

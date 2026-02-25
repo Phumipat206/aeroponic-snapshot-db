@@ -32,9 +32,15 @@
                 <select id="category_id" name="category_id">
                     <option value="">-- All Categories --</option>
                     {% for category in categories %}
+                        {% if category.parent_id %}
                         <option value="{{ category.id }}">
-                            {% if category.parent_id %}└─ {% endif %}{{ category.name }}
+                            └─ {{ category.name }}
                         </option>
+                        {% else %}
+                        <option value="" disabled style="font-weight:bold; color:var(--text-secondary);">
+                            {{ category.name }}
+                        </option>
+                        {% endif %}
                     {% endfor %}
                 </select>
             </div>

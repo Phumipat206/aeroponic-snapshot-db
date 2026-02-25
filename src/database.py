@@ -119,6 +119,13 @@ def init_database():
         except sqlite3.OperationalError:
             pass  # คอลัมน์มีอยู่แล้ว
 
+        # Migration: add file_hash column for duplicate detection
+        try:
+            cursor.execute('ALTER TABLE snapshots ADD COLUMN file_hash TEXT')
+            logger.info("Added column: file_hash")
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
         # Create indexes for efficient querying
         cursor.execute('''
             CREATE INDEX IF NOT EXISTS idx_capture_time 
@@ -154,6 +161,11 @@ def init_database():
         cursor.execute('''
             CREATE INDEX IF NOT EXISTS idx_project_camera 
             ON snapshots (project_name, camera_id)
+        ''')
+
+        cursor.execute('''
+            CREATE INDEX IF NOT EXISTS idx_file_hash
+            ON snapshots (file_hash)
         ''')
 
         # Create video_generations table to track generated videos
@@ -227,19 +239,66 @@ def get_category_by_name(name):
         return dict(row) if row else None
 
 
+def check_duplicate_hash(file_hash):
+    """Check if a file with the same hash already exists in the database.
+    Returns the existing snapshot dict if duplicate, None otherwise."""
+    if not file_hash:
+        return None
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM snapshots WHERE file_hash = ? LIMIT 1', (file_hash,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def is_leaf_category(category_id):
+    """Check if a category is a leaf (has no children). Returns True if leaf, False if parent."""
+    if category_id is None:
+        return True
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM categories WHERE parent_id = ?', (category_id,))
+        child_count = cursor.fetchone()[0]
+        return child_count == 0
+
+
+def category_exists(category_id):
+    """Check if a category_id exists in the database."""
+    if category_id is None:
+        return True
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM categories WHERE id = ?', (category_id,))
+        return cursor.fetchone()[0] > 0
+
+
+def get_leaf_categories():
+    """Get only leaf categories (those with no children)."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT c.* FROM categories c
+            WHERE NOT EXISTS (
+                SELECT 1 FROM categories child WHERE child.parent_id = c.id
+            )
+            ORDER BY c.parent_id, c.name
+        ''')
+        return cursor.fetchall()
+
+
 def add_snapshot(filename, original_filename, filepath, category_id,
                  capture_time, file_size, width, height, source='upload',
-                 tags='', notes='', project_name=None, camera_id=None):
+                 tags='', notes='', project_name=None, camera_id=None, file_hash=None):
     """Add a new snapshot to the database"""
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO snapshots 
             (filename, original_filename, filepath, category_id, capture_time, 
-             file_size, width, height, source, tags, notes, project_name, camera_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             file_size, width, height, source, tags, notes, project_name, camera_id, file_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (filename, original_filename, filepath, category_id, capture_time,
-              file_size, width, height, source, tags, notes, project_name, camera_id))
+              file_size, width, height, source, tags, notes, project_name, camera_id, file_hash))
         conn.commit()
         snapshot_id = cursor.lastrowid
     return snapshot_id
@@ -261,13 +320,13 @@ def add_snapshots_batch(snapshot_list):
         cursor.executemany('''
             INSERT INTO snapshots 
             (filename, original_filename, filepath, category_id, capture_time, 
-             file_size, width, height, source, tags, notes, project_name, camera_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             file_size, width, height, source, tags, notes, project_name, camera_id, file_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', [
             (s['filename'], s['original_filename'], s['filepath'], s.get('category_id'),
              s['capture_time'], s.get('file_size', 0), s.get('width', 0), s.get('height', 0),
              s.get('source', 'upload'), s.get('tags', ''), s.get('notes', ''),
-             s.get('project_name'), s.get('camera_id'))
+             s.get('project_name'), s.get('camera_id'), s.get('file_hash'))
             for s in snapshot_list
         ])
         conn.commit()

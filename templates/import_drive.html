@@ -30,9 +30,15 @@
                 <select id="category_id" name="category_id">
                     <option value="">-- None --</option>
                     {% for category in categories %}
+                        {% if category.parent_id %}
                         <option value="{{ category.id }}">
-                            {% if category.parent_id %}└─ {% endif %}{{ category.name }}
+                            └─ {{ category.name }}
                         </option>
+                        {% else %}
+                        <option value="" disabled style="font-weight:bold; color:var(--text-secondary);">
+                            {{ category.name }}
+                        </option>
+                        {% endif %}
                     {% endfor %}
                 </select>
             </div>
@@ -59,6 +65,18 @@
             <p style="font-size:12px;color:var(--text-muted);margin-left:28px;line-height:1.6">
                 Support <code>[n]_MM-DD</code> folder structure (Raspberry Pi style)<br>
                 <span style="color:var(--text-muted)">e.g. <code>cam1/1_01-15/image.jpg</code> → Camera: cam1, Date: Jan 15</span>
+            </p>
+        </div>
+        
+        <!-- Skip Duplicates Checkbox -->
+        <div style="padding:16px;border-radius:var(--radius-lg);margin-bottom:16px;border:1px solid rgba(234,179,8,0.15);background:var(--warning-light)">
+            <label class="checkbox-wrapper" style="font-weight:600;margin-bottom:8px">
+                <input type="checkbox" name="skip_duplicates" checked>
+                <span><i class="fas fa-copy" style="color:var(--warning)"></i> Skip Duplicate Files</span>
+            </label>
+            <p style="font-size:12px;color:var(--text-muted);margin-left:28px;line-height:1.6">
+                Automatically detect and skip files that have already been imported<br>
+                <span style="color:var(--text-muted)">Uses file content hash (SHA-256) for accurate duplicate detection</span>
             </p>
         </div>
         
@@ -125,6 +143,12 @@
         <div>
             <strong>Import Successful!</strong><br>
             Imported {{ imported_count }} images
+            {% if skipped_duplicates is defined and skipped_duplicates > 0 %}
+            <br><i class="fas fa-copy"></i> Skipped {{ skipped_duplicates }} duplicate files
+            {% endif %}
+            {% if skipped_invalid is defined and skipped_invalid > 0 %}
+            <br><i class="fas fa-ban"></i> Skipped {{ skipped_invalid }} invalid/unsupported files
+            {% endif %}
         </div>
     </div>
     

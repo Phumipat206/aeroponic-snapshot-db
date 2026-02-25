@@ -53,10 +53,12 @@ from src.database import (
     cleanup_missing_files, get_all_videos, get_video_by_id,
     search_snapshots, get_filter_options,
     get_cameras_by_project,
+    check_duplicate_hash, is_leaf_category, category_exists, get_leaf_categories,
 )
 from src.utils import (
-    allowed_file, generate_unique_filename, get_image_dimensions,
+    allowed_file, allowed_file_strict, generate_unique_filename, get_image_dimensions,
     parse_datetime, extract_datetime_from_filename, format_file_size,
+    compute_file_hash, compute_data_hash, STRICT_IMAGE_EXTENSIONS, MAX_UPLOAD_SIZE_BYTES,
 )
 from src.video_generator import (
     create_timelapse_video, create_timelapse_with_timestamps,
@@ -347,8 +349,9 @@ def upload():
     if file.filename == '':
         return jsonify({'success': False, 'error': 'No file selected'}), 400
 
-    if not allowed_file(file.filename):
-        return jsonify({'success': False, 'error': 'Invalid file type'}), 400
+    # Fix #7: Strict file extension check (jpg, jpeg, png only)
+    if not allowed_file_strict(file.filename):
+        return jsonify({'success': False, 'error': 'Invalid file type. Only .jpg, .jpeg, .png are allowed'}), 400
 
     try:
         category_id = request.form.get('category_id', type=int)
@@ -357,23 +360,54 @@ def upload():
         notes = request.form.get('notes', '')
         source = request.form.get('source', 'upload')
 
+        # Fix #7: Category is required
+        if not category_id:
+            return jsonify({'success': False, 'error': 'Please select a category before uploading'}), 400
+
+        # Fix #3: Validate category exists and is a leaf category
+        if not category_exists(category_id):
+            return jsonify({'success': False, 'error': 'Selected category does not exist'}), 400
+        if not is_leaf_category(category_id):
+            return jsonify({'success': False, 'error': 'Cannot upload to a parent category. Please select a sub-category'}), 400
+
+        # Fix #7: Check file size before saving
+        file.seek(0, 2)  # Seek to end
+        file_size_check = file.tell()
+        file.seek(0)  # Reset to beginning
+        if file_size_check > MAX_UPLOAD_SIZE_BYTES:
+            return jsonify({'success': False, 'error': f'File too large. Maximum size is {MAX_UPLOAD_SIZE_BYTES // (1024*1024)} MB'}), 400
+
+        # Fix #1: Duplicate detection - compute hash from file content
+        file_data = file.read()
+        file.seek(0)
+        file_hash = compute_data_hash(file_data)
+        existing = check_duplicate_hash(file_hash)
+        if existing:
+            return jsonify({
+                'success': False,
+                'error': f'Duplicate image detected. This image was already uploaded as "{existing["original_filename"]}" (ID: {existing["id"]})',
+                'duplicate_id': existing['id'],
+            }), 409
+
+        # Fix #2: Timestamp priority - user input > filename > server time
+        capture_time = None
         if capture_time_str:
             capture_time = parse_datetime(capture_time_str)
-        else:
+
+        if not capture_time:
             capture_time = extract_datetime_from_filename(file.filename)
 
         if not capture_time:
             capture_time = datetime.now()
 
+        upload_time = datetime.now()  # Always record upload time separately
+
         original_filename = secure_filename(file.filename)
         unique_filename = generate_unique_filename(original_filename)
 
-        if category_id:
-            category_path = os.path.join(UPLOAD_FOLDER, f"category_{category_id}")
-            os.makedirs(category_path, exist_ok=True)
-            filepath = os.path.join(category_path, unique_filename)
-        else:
-            filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
+        category_path = os.path.join(UPLOAD_FOLDER, f"category_{category_id}")
+        os.makedirs(category_path, exist_ok=True)
+        filepath = os.path.join(category_path, unique_filename)
 
         file.save(filepath)
 
@@ -392,6 +426,7 @@ def upload():
             source=source,
             tags=tags,
             notes=notes,
+            file_hash=file_hash,
         )
 
         return jsonify({
@@ -434,10 +469,11 @@ def api_upload():
         if file.filename == '':
             return jsonify({'success': False, 'error': 'No file selected'}), 400
 
-        if not allowed_file(file.filename):
+        # Fix #7: Strict file type validation
+        if not allowed_file_strict(file.filename):
             return jsonify({
                 'success': False,
-                'error': f'Invalid file type. Allowed: {ALLOWED_EXTENSIONS}',
+                'error': f'Invalid file type. Only .jpg, .jpeg, .png are allowed',
             }), 400
 
         camera_id = request.form.get('camera_id', '')
@@ -447,6 +483,42 @@ def api_upload():
         notes = request.form.get('notes', '')
         timestamp_str = request.form.get('timestamp')
 
+        # Fix #4: Validate category_id exists in database
+        if category_id is not None and category_id:
+            if not category_exists(category_id):
+                return jsonify({
+                    'success': False,
+                    'error': f'category_id {category_id} does not exist in the database',
+                }), 400
+            if not is_leaf_category(category_id):
+                return jsonify({
+                    'success': False,
+                    'error': f'category_id {category_id} is a parent category. Please use a sub-category',
+                }), 400
+
+        # Fix #7: Check file size
+        file.seek(0, 2)
+        file_size_check = file.tell()
+        file.seek(0)
+        if file_size_check > MAX_UPLOAD_SIZE_BYTES:
+            return jsonify({
+                'success': False,
+                'error': f'File too large. Maximum size is {MAX_UPLOAD_SIZE_BYTES // (1024*1024)} MB',
+            }), 400
+
+        # Fix #1: Duplicate detection
+        file_data = file.read()
+        file.seek(0)
+        file_hash = compute_data_hash(file_data)
+        existing = check_duplicate_hash(file_hash)
+        if existing:
+            return jsonify({
+                'success': False,
+                'error': f'Duplicate image detected. Already uploaded as "{existing["original_filename"]}" (ID: {existing["id"]})',
+                'duplicate_id': existing['id'],
+            }), 409
+
+        # Fix #2: Timestamp priority - user provided > filename > server time
         capture_time = None
         if timestamp_str:
             for fmt in ['%Y-%m-%d_%H-%M-%S', '%Y%m%d_%H%M%S', '%Y-%m-%d %H:%M:%S']:
@@ -513,6 +585,7 @@ def api_upload():
             source='API Upload',
             tags=combined_tags,
             notes=api_notes,
+            file_hash=file_hash,
         )
 
         return jsonify({
@@ -765,6 +838,10 @@ def _prepare_video_data(category_id, start_time, end_time, fps, show_timestamp,
     """Shared helper to query snapshots and prepare video data (Fix #20)."""
     start_dt = parse_datetime(start_time) if start_time else None
     end_dt = parse_datetime(end_time) if end_time else None
+
+    # Fix #6: If end_time not specified but start_time is, default to end of start day
+    if start_dt and not end_dt:
+        end_dt = start_dt.replace(hour=23, minute=59, second=59)
 
     snapshots = query_snapshots(
         category_id=category_id,
@@ -1050,6 +1127,76 @@ def api_generate_video():
         return jsonify({'success': False, 'error': str(e)})
 
 
+@app.route('/api/generate-video/from-ids', methods=['POST'])
+def api_generate_video_from_ids():
+    """Generate time-lapse video from a list of snapshot IDs (for search results / daily snapshots)."""
+    try:
+        data = request.get_json() or {}
+        snapshot_ids = data.get('snapshot_ids', [])
+        fps = data.get('fps', 10)
+        show_timestamp = data.get('show_timestamp', True)
+        video_name = data.get('video_name', 'timelapse_from_results')
+
+        if not snapshot_ids:
+            return jsonify({'success': False, 'error': 'No snapshot IDs provided'}), 400
+
+        # Fetch snapshots in order
+        snapshots = []
+        for sid in snapshot_ids:
+            snap = get_snapshot_by_id(sid)
+            if snap:
+                snapshots.append(snap)
+
+        if not snapshots:
+            return jsonify({'success': False, 'error': 'No valid snapshots found'}), 400
+
+        # Sort by capture_time
+        snapshots.sort(key=lambda s: s['capture_time'])
+
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        output_filename = f"{secure_filename(video_name)}_{timestamp}.mp4"
+
+        if show_timestamp:
+            snapshot_data = [
+                (_normalize_filepath(s['filepath'], UPLOAD_FOLDER), parse_datetime(s['capture_time']), f"ID: {s['id']}")
+                for s in snapshots
+            ]
+        else:
+            snapshot_data = [_normalize_filepath(s['filepath'], UPLOAD_FOLDER) for s in snapshots]
+
+        job_id = str(uuid.uuid4())
+
+        _set_job_result(job_id, {
+            'success': None,
+            'video_path': None,
+            'error': None,
+            'completed': False,
+            'snapshot_count': len(snapshots),
+            'output_filename': output_filename,
+            'query_params': {
+                'snapshot_ids': snapshot_ids,
+                'fps': fps,
+                'video_name': video_name,
+            },
+        })
+
+        thread = threading.Thread(
+            target=run_video_generation,
+            args=(job_id, snapshot_data, output_filename, fps, show_timestamp, False),
+        )
+        thread.daemon = True
+        thread.start()
+
+        return jsonify({
+            'success': True,
+            'job_id': job_id,
+            'total_images': len(snapshots),
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/video/<int:video_id>')
 def download_video(video_id):
     """Download generated video — Fix #12: path validation"""
@@ -1103,6 +1250,14 @@ def api_categories():
 
         if not name:
             return jsonify({'success': False, 'error': 'Name is required'}), 400
+
+        # Fix #3: Validate parent_id exists if provided
+        if parent_id is not None and parent_id != '' and parent_id:
+            parent_id = int(parent_id)
+            if not category_exists(parent_id):
+                return jsonify({'success': False, 'error': f'Parent category {parent_id} does not exist'}), 400
+        else:
+            parent_id = None
 
         category_id = add_category(name, parent_id, description)
         return jsonify({'success': True, 'category_id': category_id})
@@ -1168,6 +1323,7 @@ def import_drive():
         source_name = request.form.get('source_name', 'Folder Import')
         category_id = request.form.get('category_id', type=int)
         smart_detect = request.form.get('smart_detect') == 'on'
+        skip_duplicates = request.form.get('skip_duplicates', 'on') == 'on'  # Default ON
 
         if not folder_path or not os.path.exists(folder_path):
             flash('Folder not found. Please check the path again', 'error')
@@ -1188,6 +1344,8 @@ def import_drive():
                 return render_template('import_drive.html', categories=categories_list)
 
         imported_count = 0
+        skipped_duplicates = 0
+        skipped_invalid = 0
         errors = []
         batch = []              # Fix #10: accumulate for batch insert
         BATCH_SIZE = 100
@@ -1195,10 +1353,30 @@ def import_drive():
         for root, dirs, files in os.walk(folder_path):
             for filename in files:
                 if not allowed_file(filename):
+                    skipped_invalid += 1
                     continue
 
                 try:
                     source_path = os.path.join(root, filename)
+
+                    # Fix #5: Skip corrupt/unreadable files
+                    try:
+                        test_size = os.path.getsize(source_path)
+                        if test_size == 0:
+                            skipped_invalid += 1
+                            continue
+                    except OSError:
+                        skipped_invalid += 1
+                        continue
+
+                    # Fix #1/#5: Duplicate detection via file hash
+                    file_hash = compute_file_hash(source_path)
+                    if skip_duplicates and file_hash:
+                        existing = check_duplicate_hash(file_hash)
+                        if existing:
+                            skipped_duplicates += 1
+                            continue
+
                     path_parts = os.path.normpath(source_path).split(os.sep)
 
                     project_name = None
@@ -1241,6 +1419,7 @@ def import_drive():
                         'notes': f'Imported from: {source_path}',
                         'project_name': project_name,
                         'camera_id': cam_id,
+                        'file_hash': file_hash,
                     })
 
                     if len(batch) >= BATCH_SIZE:
@@ -1260,12 +1439,20 @@ def import_drive():
         if imported_count > 0:
             flash(f'Successfully imported {imported_count} images', 'success')
 
+        if skipped_duplicates > 0:
+            flash(f'Skipped {skipped_duplicates} duplicate images', 'info')
+
+        if skipped_invalid > 0:
+            flash(f'Skipped {skipped_invalid} invalid/unsupported files', 'info')
+
         if errors:
             flash(f'Found {len(errors)} errors', 'warning')
 
         return render_template('import_drive.html',
                              categories=categories_list,
                              imported_count=imported_count,
+                             skipped_duplicates=skipped_duplicates,
+                             skipped_invalid=skipped_invalid,
                              errors=errors[:10])
 
     except Exception as e:
@@ -1377,6 +1564,34 @@ def api_delete_multiple_snapshots():
 # UPDATE APIs
 # =============================================================================
 
+@app.route('/api/snapshot/<int:snapshot_id>', methods=['GET'])
+def api_get_snapshot(snapshot_id):
+    """API to get a single snapshot by ID"""
+    try:
+        snapshot = get_snapshot_by_id(snapshot_id)
+        if not snapshot:
+            return jsonify({'success': False, 'error': 'Snapshot not found'}), 404
+        return jsonify({
+            'success': True,
+            'snapshot': {
+                'id': snapshot['id'],
+                'filename': snapshot['filename'],
+                'original_filename': snapshot['original_filename'],
+                'category_id': snapshot['category_id'],
+                'capture_time': snapshot['capture_time'],
+                'upload_time': snapshot['upload_time'],
+                'file_size': snapshot['file_size'],
+                'width': snapshot['width'],
+                'height': snapshot['height'],
+                'source': snapshot['source'],
+                'tags': snapshot['tags'],
+                'notes': snapshot['notes'],
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/snapshot/<int:snapshot_id>', methods=['PUT'])
 @require_admin
 def api_update_snapshot(snapshot_id):
@@ -1482,12 +1697,19 @@ def edit_snapshot(snapshot_id):
         category_id = request.form.get('category_id', type=int)
         tags = request.form.get('tags', '')
         notes = request.form.get('notes', '')
+        capture_time_str = request.form.get('capture_time')
+
+        # Parse capture_time if provided
+        capture_time = None
+        if capture_time_str:
+            capture_time = parse_datetime(capture_time_str)
 
         success, message = update_snapshot(
             snapshot_id,
             category_id=category_id,
             tags=tags,
             notes=notes,
+            capture_time=capture_time,
         )
 
         if success:

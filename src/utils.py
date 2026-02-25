@@ -1,6 +1,7 @@
 import os
 import re
 import uuid
+import hashlib
 from datetime import datetime
 from PIL import Image
 from src.config import ALLOWED_EXTENSIONS
@@ -8,10 +9,42 @@ from src.logger import get_logger
 
 logger = get_logger('utils')
 
+# Strict allowed extensions for upload validation
+STRICT_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png'}
+
+# Maximum file size in bytes (20 MB)
+MAX_UPLOAD_SIZE_BYTES = 20 * 1024 * 1024
+
+
 def allowed_file(filename):
     """Check if file has an allowed extension"""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def allowed_file_strict(filename):
+    """Check if file has a strictly allowed image extension (jpg, jpeg, png only)"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in STRICT_IMAGE_EXTENSIONS
+
+
+def compute_file_hash(filepath):
+    """Compute SHA-256 hash of a file for duplicate detection.
+    Reads file in chunks to handle large files efficiently."""
+    sha256 = hashlib.sha256()
+    try:
+        with open(filepath, 'rb') as f:
+            for chunk in iter(lambda: f.read(8192), b''):
+                sha256.update(chunk)
+        return sha256.hexdigest()
+    except Exception as e:
+        logger.warning(f"Error computing file hash: {e}")
+        return None
+
+
+def compute_data_hash(data_bytes):
+    """Compute SHA-256 hash from raw bytes (e.g., from an uploaded file stream)."""
+    return hashlib.sha256(data_bytes).hexdigest()
 
 def generate_unique_filename(original_filename):
     """Generate a unique filename to avoid conflicts"""
@@ -39,6 +72,12 @@ def format_file_size(size_bytes):
 
 def parse_datetime(datetime_str):
     """Parse datetime string in various formats"""
+    if not datetime_str:
+        return None
+
+    # Normalise the ISO 'T' separator so the standard formats work
+    datetime_str = datetime_str.strip().replace('T', ' ')
+
     formats = [
         '%Y-%m-%d %H:%M:%S.%f',
         '%Y-%m-%d %H:%M:%S',

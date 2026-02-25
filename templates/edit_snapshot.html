@@ -27,13 +27,27 @@
                     <select id="category_id" name="category_id">
                         <option value="">-- No Category --</option>
                         {% for category in categories %}
+                            {% if category.parent_id %}
                             <option value="{{ category.id }}" {% if snapshot.category_id == category.id %}selected{% endif %}>
-                                {% if category.parent_id %}└─ {% endif %}{{ category.name }}
+                                └─ {{ category.name }}
                             </option>
+                            {% else %}
+                            <option value="" disabled style="font-weight:bold; color:var(--text-secondary);">
+                                {{ category.name }}
+                            </option>
+                            {% endif %}
                         {% endfor %}
                     </select>
                 </div>
                 
+                <div class="form-group">
+                    <label for="capture_time"><i class="fas fa-clock"></i> Capture Time</label>
+                    <input type="datetime-local" id="capture_time" name="capture_time" 
+                           value="{{ snapshot.capture_time[:16] if snapshot.capture_time and snapshot.capture_time|length >= 16 else '' }}"
+                           step="1">
+                    <small style="color: var(--text-muted); font-size: 0.8rem;">Leave blank to keep current value</small>
+                </div>
+
                 <div class="form-group">
                     <label for="tags"><i class="fas fa-tags"></i> Tags</label>
                     <input type="text" id="tags" name="tags" value="{{ snapshot.tags or '' }}" 

@@ -25,21 +25,28 @@
             <i class="fas fa-cloud-upload-alt"></i>
             <p style="font-size: 1.1rem; font-weight: 500; margin-bottom: 0.5rem;">Drag and drop file here</p>
             <p style="color: var(--gray);">or click to select file</p>
-            <input type="file" id="file" name="file" accept="image/*" required style="display: none;">
+            <input type="file" id="file" name="file" accept=".jpg,.jpeg,.png" required style="display: none;">
         </div>
         <p id="fileName" style="text-align: center; margin: 1rem 0; color: var(--primary); font-weight: 500;"></p>
         
         <div class="form-grid">
             <div class="form-group">
-                <label for="category_id"><i class="fas fa-folder"></i> Category</label>
-                <select id="category_id" name="category_id">
-                    <option value="">-- Select Category --</option>
+                <label for="category_id"><i class="fas fa-folder"></i> Category <span style="color:var(--danger)">*</span></label>
+                <select id="category_id" name="category_id" required>
+                    <option value="">-- Select Category (Required) --</option>
                     {% for category in categories %}
+                        {% if category.parent_id %}
                         <option value="{{ category.id }}">
-                            {% if category.parent_id %}└─ {% endif %}{{ category.name }}
+                            └─ {{ category.name }}
                         </option>
+                        {% else %}
+                        <option value="" disabled style="font-weight:bold; color:var(--text-secondary);">
+                            {{ category.name }}
+                        </option>
+                        {% endif %}
                     {% endfor %}
                 </select>
+                <p class="helper-text">Only sub-categories can be selected</p>
             </div>
             
             <div class="form-group">
@@ -84,15 +91,23 @@
     <ul class="feature-list">
         <li>
             <i class="fas fa-info-circle" style="color:var(--accent)"></i>
-            <span>Supported formats: JPG, PNG, GIF, BMP</span>
+            <span>Supported formats: JPG, JPEG, PNG only</span>
         </li>
         <li>
             <i class="fas fa-info-circle" style="color:var(--accent)"></i>
-            <span>Maximum file size: 50 MB per image</span>
+            <span>Maximum file size: 20 MB per image</span>
         </li>
         <li>
             <i class="fas fa-info-circle" style="color:var(--accent)"></i>
-            <span>System will auto-detect date/time from filename</span>
+            <span>Category selection is required before uploading</span>
+        </li>
+        <li>
+            <i class="fas fa-info-circle" style="color:var(--accent)"></i>
+            <span>Duplicate images are automatically detected and rejected</span>
+        </li>
+        <li>
+            <i class="fas fa-info-circle" style="color:var(--accent)"></i>
+            <span>System will auto-detect date/time from filename if not specified</span>
         </li>
         <li>
             <i class="fas fa-info-circle" style="color:var(--accent)"></i>
@@ -170,13 +185,47 @@ fileInput.addEventListener('change', updateFileName);
 
 function updateFileName() {
     if (fileInput.files.length) {
-        fileName.innerHTML = '<i class="fas fa-check-circle"></i> ' + fileInput.files[0].name;
+        const file = fileInput.files[0];
+        const ext = file.name.split('.').pop().toLowerCase();
+        const allowedExts = ['jpg', 'jpeg', 'png'];
+        const maxSize = 20 * 1024 * 1024; // 20 MB
+        
+        if (!allowedExts.includes(ext)) {
+            fileName.innerHTML = '<i class="fas fa-exclamation-circle" style="color:var(--danger)"></i> Invalid file type. Only .jpg, .jpeg, .png allowed';
+            fileInput.value = '';
+            return;
+        }
+        
+        if (file.size > maxSize) {
+            fileName.innerHTML = '<i class="fas fa-exclamation-circle" style="color:var(--danger)"></i> File too large. Maximum 20 MB';
+            fileInput.value = '';
+            return;
+        }
+        
+        fileName.innerHTML = '<i class="fas fa-check-circle"></i> ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
     }
 }
 
 // Form submission
 document.getElementById('uploadForm').addEventListener('submit', async function(e) {
     e.preventDefault();
+    
+    // Client-side validation
+    const categorySelect = document.getElementById('category_id');
+    if (!categorySelect.value) {
+        document.getElementById('resultContent').innerHTML = `
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <strong>Error:</strong> Please select a category before uploading
+            </div>
+        `;
+        document.getElementById('result').style.display = 'block';
+        return;
+    }
+    
+    if (!fileInput.files.length) {
+        return;
+    }
     
     const formData = new FormData(this);
     const button = document.getElementById('submitBtn');

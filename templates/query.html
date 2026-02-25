@@ -56,9 +56,15 @@
                 <select id="category_id" name="category_id">
                     <option value="">-- All Categories --</option>
                     {% for category in categories %}
+                        {% if category.parent_id %}
                         <option value="{{ category.id }}" {% if query_params and query_params.category_id|string == category.id|string %}selected{% endif %}>
-                            {% if category.parent_id %}└─ {% endif %}{{ category.name }}
+                            └─ {{ category.name }}
                         </option>
+                        {% else %}
+                        <option value="" disabled style="font-weight:bold; color:var(--text-secondary);">
+                            {{ category.name }}
+                        </option>
+                        {% endif %}
                     {% endfor %}
                 </select>
             </div>
@@ -112,6 +118,9 @@
             <span id="selectedCount" style="color: var(--primary); font-weight: 500; font-size: 14px;">(0 selected)</span>
             <button type="button" id="deleteSelectedBtn" class="btn btn-danger" style="padding: 8px 16px; font-size: 13px;" onclick="deleteSelected()" disabled>
                 <i class="fas fa-trash"></i> Delete Selected
+            </button>
+            <button type="button" id="timelapseSelectedBtn" class="btn" style="padding: 8px 16px; font-size: 13px; background: var(--gradient-primary);" onclick="createTimelapseFromResults()" disabled>
+                <i class="fas fa-film"></i> Create Timelapse from Selected
             </button>
         </div>
         {% endif %}
@@ -465,9 +474,11 @@ function updateSelectedCount() {
     const count = checkboxes.length;
     const countSpan = document.getElementById('selectedCount');
     const deleteBtn = document.getElementById('deleteSelectedBtn');
+    const timelapseBtn = document.getElementById('timelapseSelectedBtn');
     
     if (countSpan) countSpan.textContent = `(${count} selected)`;
     if (deleteBtn) deleteBtn.disabled = count === 0;
+    if (timelapseBtn) timelapseBtn.disabled = count < 2;
     
     document.querySelectorAll('.snapshot-checkbox').forEach(cb => updateCardStyle(cb));
     
@@ -574,6 +585,76 @@ function jumpToPage() {
     } else {
         alert(`Please enter a page number between 1 and ${maxPage}`);
     }
+}
+
+function createTimelapseFromResults() {
+    const ids = getSelectedIds();
+    if (ids.length < 2) {
+        alert('Please select at least 2 images to create a timelapse');
+        return;
+    }
+    
+    const videoName = prompt('Enter a name for the video:', 'timelapse_from_search');
+    if (!videoName) return;
+    
+    const btn = document.getElementById('timelapseSelectedBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Creating...';
+    
+    fetch('/api/generate-video/from-ids', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            snapshot_ids: ids,
+            fps: 10,
+            show_timestamp: true,
+            video_name: videoName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Poll for completion
+            const jobId = data.job_id;
+            const pollInterval = setInterval(() => {
+                fetch(`/api/generate-video/progress/${jobId}`)
+                    .then(r => r.json())
+                    .then(progress => {
+                        if (progress.completed) {
+                            clearInterval(pollInterval);
+                            if (progress.success !== false) {
+                                // Complete the video
+                                fetch(`/api/generate-video/complete/${jobId}`, { method: 'POST' })
+                                    .then(r => r.json())
+                                    .then(result => {
+                                        if (result.success) {
+                                            alert(`Video created successfully! ${result.snapshot_count} images processed.`);
+                                            window.open(`/video/${result.video_id}`, '_blank');
+                                        } else {
+                                            alert('Error: ' + (result.error || 'Unknown error'));
+                                        }
+                                        btn.disabled = false;
+                                        btn.innerHTML = '<i class="fas fa-film"></i> Create Timelapse from Selected';
+                                    });
+                            } else {
+                                alert('Error creating video: ' + (progress.error || 'Unknown error'));
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="fas fa-film"></i> Create Timelapse from Selected';
+                            }
+                        }
+                    });
+            }, 1000);
+        } else {
+            alert('Error: ' + data.error);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-film"></i> Create Timelapse from Selected';
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-film"></i> Create Timelapse from Selected';
+    });
 }
 </script>
 {% endblock %}

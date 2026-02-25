@@ -85,6 +85,11 @@
     {% endif %}
     
     {% if snapshots %}
+    <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+        <button type="button" id="timelapseAllBtn" class="btn" style="padding: 10px 20px; background: var(--gradient-primary);" onclick="createTimelapseFromDaily()">
+            <i class="fas fa-film"></i> Create Timelapse from These Results ({{ snapshots|length }} images)
+        </button>
+    </div>
     <div class="grid">
         {% for snapshot in snapshots %}
         <div class="snapshot-card">
@@ -168,6 +173,84 @@ function loadCameras() {
             })
             .catch(error => console.error('Error loading cameras:', error));
     }
+}
+
+function createTimelapseFromDaily() {
+    // Collect all snapshot IDs from the page
+    const snapshotCards = document.querySelectorAll('.snapshot-card');
+    const ids = [];
+    snapshotCards.forEach(card => {
+        const link = card.querySelector('a[href^="/snapshot/"]');
+        if (link) {
+            const match = link.href.match(/\/snapshot\/(\d+)/);
+            if (match) ids.push(parseInt(match[1]));
+        }
+    });
+    
+    if (ids.length < 2) {
+        alert('Need at least 2 images to create a timelapse');
+        return;
+    }
+    
+    const videoName = prompt('Enter a name for the video:', 'daily_timelapse');
+    if (!videoName) return;
+    
+    const btn = document.getElementById('timelapseAllBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Creating timelapse...';
+    
+    fetch('/api/generate-video/from-ids', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            snapshot_ids: ids,
+            fps: 10,
+            show_timestamp: true,
+            video_name: videoName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const jobId = data.job_id;
+            const pollInterval = setInterval(() => {
+                fetch(`/api/generate-video/progress/${jobId}`)
+                    .then(r => r.json())
+                    .then(progress => {
+                        if (progress.completed) {
+                            clearInterval(pollInterval);
+                            if (progress.success !== false) {
+                                fetch(`/api/generate-video/complete/${jobId}`, { method: 'POST' })
+                                    .then(r => r.json())
+                                    .then(result => {
+                                        if (result.success) {
+                                            alert(`Video created successfully! ${result.snapshot_count} images processed.`);
+                                            window.open(`/video/${result.video_id}`, '_blank');
+                                        } else {
+                                            alert('Error: ' + (result.error || 'Unknown error'));
+                                        }
+                                        btn.disabled = false;
+                                        btn.innerHTML = '<i class="fas fa-film"></i> Create Timelapse from These Results';
+                                    });
+                            } else {
+                                alert('Error creating video: ' + (progress.error || 'Unknown error'));
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="fas fa-film"></i> Create Timelapse from These Results';
+                            }
+                        }
+                    });
+            }, 1000);
+        } else {
+            alert('Error: ' + data.error);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-film"></i> Create Timelapse from These Results';
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-film"></i> Create Timelapse from These Results';
+    });
 }
 </script>
 {% endblock %}
